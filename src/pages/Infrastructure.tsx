@@ -111,7 +111,7 @@ export default function Infrastructure() {
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 canvas-stagger">
         {filtered.map(r => {
-          const TypeIcon = typeIcons[r.type] || Server;
+          const TypeIcon = typeIcons[r.asset_type] || Server;
           return (
             <div key={r.id} className="bg-card border border-border rounded-lg p-4 card-hover cursor-pointer group">
               <div className="flex items-center justify-between mb-3">
