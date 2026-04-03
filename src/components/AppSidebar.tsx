@@ -1,6 +1,7 @@
-import { LayoutDashboard, CreditCard, Server, KeyRound, Bell, DollarSign, Lightbulb, FileBarChart, Settings } from "lucide-react";
+import { LayoutDashboard, CreditCard, Server, KeyRound, Bell, DollarSign, Lightbulb, FileBarChart, Settings, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import logoAceleriq from "@/assets/logo-aceleriq.png";
 import {
   Sidebar,
@@ -29,10 +30,11 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarContent>
+      <SidebarContent className="flex flex-col h-full">
         <div className={`flex items-center gap-3 px-4 py-5 border-b border-border ${collapsed ? "justify-center" : ""}`}>
           <img src={logoAceleriq} alt="Aceleriq" className="h-8 w-8 rounded-md object-contain" />
           {!collapsed && (
@@ -42,7 +44,7 @@ export function AppSidebar() {
             </div>
           )}
         </div>
-        <SidebarGroup>
+        <SidebarGroup className="flex-1">
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -63,6 +65,22 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* User info + logout */}
+        <div className="border-t border-border px-3 py-3">
+          {!collapsed && user && (
+            <div className="text-[11px] text-muted-foreground font-mono truncate mb-2 px-1">
+              {user.email}
+            </div>
+          )}
+          <button
+            onClick={signOut}
+            className={`flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ${collapsed ? "justify-center" : ""}`}
+          >
+            <LogOut className="h-4 w-4" />
+            {!collapsed && <span>Sair</span>}
+          </button>
+        </div>
       </SidebarContent>
     </Sidebar>
   );
