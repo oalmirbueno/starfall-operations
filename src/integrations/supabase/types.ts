@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      alerts: {
+        Row: {
+          alert_date: string
+          created_at: string
+          days_until: number | null
+          description: string
+          id: string
+          notify_channels: string[] | null
+          resolved: boolean
+          resolved_at: string | null
+          service: string
+          subscription_id: string | null
+          type: string
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          alert_date?: string
+          created_at?: string
+          days_until?: number | null
+          description: string
+          id?: string
+          notify_channels?: string[] | null
+          resolved?: boolean
+          resolved_at?: string | null
+          service: string
+          subscription_id?: string | null
+          type: string
+          urgency: string
+          user_id: string
+        }
+        Update: {
+          alert_date?: string
+          created_at?: string
+          days_until?: number | null
+          description?: string
+          id?: string
+          notify_channels?: string[] | null
+          resolved?: boolean
+          resolved_at?: string | null
+          service?: string
+          subscription_id?: string | null
+          type?: string
+          urgency?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -101,6 +157,56 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_queue: {
+        Row: {
+          alert_id: string | null
+          body: string
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_id?: string | null
+          body: string
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_id?: string | null
+          body?: string
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_queue_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -131,6 +237,66 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          account: string | null
+          auto_renew: boolean
+          category: string | null
+          created_at: string
+          currency: string
+          cycle: string
+          id: string
+          next_renewal: string | null
+          notes: string | null
+          plan: string | null
+          provider: string
+          responsible: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          account?: string | null
+          auto_renew?: boolean
+          category?: string | null
+          created_at?: string
+          currency?: string
+          cycle?: string
+          id?: string
+          next_renewal?: string | null
+          notes?: string | null
+          plan?: string | null
+          provider: string
+          responsible?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+          value?: number
+        }
+        Update: {
+          account?: string | null
+          auto_renew?: boolean
+          category?: string | null
+          created_at?: string
+          currency?: string
+          cycle?: string
+          id?: string
+          next_renewal?: string | null
+          notes?: string | null
+          plan?: string | null
+          provider?: string
+          responsible?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -154,6 +320,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      compute_alerts: { Args: { p_user_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
