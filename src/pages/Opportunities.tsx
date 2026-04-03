@@ -114,14 +114,14 @@ export default function Opportunities() {
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
               <div className="flex justify-between"><span className="text-muted-foreground">Categoria</span><span className="text-foreground">{o.category}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className="text-foreground">{statusLabels[o.status]}</span></div>
-              <div className="col-span-2 flex justify-between"><span className="text-muted-foreground">Custo estimado</span><span className="font-mono text-foreground">${o.estimatedCost}/mês</span></div>
+              <div className="col-span-2 flex justify-between"><span className="text-muted-foreground">Custo estimado</span><span className="font-mono text-foreground">${o.estimated_cost}/mês</span></div>
             </div>
 
             <p className="text-[11px] text-muted-foreground mt-2.5 line-clamp-2">{o.reason}</p>
 
             <div className="mt-2.5 pt-2.5 border-t border-border/40">
               <div className="text-[9px] text-muted-foreground uppercase tracking-[0.12em] mb-0.5">Benefício</div>
-              <p className="text-[11px] text-primary leading-relaxed">{o.expectedBenefit}</p>
+              <p className="text-[11px] text-primary leading-relaxed">{o.expected_benefit}</p>
             </div>
           </div>
         ))}
