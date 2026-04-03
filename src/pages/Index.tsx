@@ -1,16 +1,158 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { DollarSign, TrendingUp, AlertTriangle, ShieldAlert, Calendar, ArrowUpRight } from "lucide-react";
+import { StatCard } from "@/components/StatCard";
+import { StatusBadge } from "@/components/StatusBadge";
+import { subscriptions, alerts, opportunities, monthlyTrend, categoryBreakdown } from "@/data/mockData";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
-  return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
-  );
+const totalMonthly = subscriptions.reduce((acc, s) => acc + (s.cycle === "mensal" ? s.value : s.cycle === "anual" ? s.value / 12 : s.value / 3), 0);
+const criticalAlerts = alerts.filter(a => a.urgency === "crítico");
+const pendingOpps = opportunities.filter(o => o.status === "a_avaliar" || o.status === "pendente");
+const nextRenewals = subscriptions.filter(s => {
+  const d = new Date(s.nextRenewal);
+  const now = new Date("2026-04-03");
+  const diff = (d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  return diff <= 15 && diff > 0;
+}).sort((a, b) => new Date(a.nextRenewal).getTime() - new Date(b.nextRenewal).getTime());
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload?.length) {
+    return (
+      <div className="bg-popover border border-border rounded-md px-3 py-2 text-xs">
+        <p className="text-muted-foreground">{label}</p>
+        <p className="text-foreground font-bold">${payload[0].value.toLocaleString()}</p>
+      </div>
+    );
+  }
+  return null;
 };
 
-const Index = PlaceholderIndex;
+export default function Dashboard() {
+  return (
+    <div className="space-y-6 canvas-stagger">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">Dashboard Executivo</h1>
+        <p className="text-sm text-muted-foreground mt-1">Visão geral do stack digital — Abril 2026</p>
+      </div>
 
-export default Index;
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Custo Mensal" value={`$${totalMonthly.toLocaleString("en", { minimumFractionDigits: 0 })}`} icon={DollarSign} trend="+3.8% vs mês anterior" trendUp={false} accent />
+        <StatCard label="Projeção Anual" value={`$${(totalMonthly * 12).toLocaleString("en", { minimumFractionDigits: 0 })}`} icon={TrendingUp} />
+        <StatCard label="Alertas Críticos" value={String(criticalAlerts.length)} icon={AlertTriangle} accent />
+        <StatCard label="Contas em Risco" value={String(subscriptions.filter(s => s.status === "pendente").length)} icon={ShieldAlert} />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Monthly Trend */}
+        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5">
+          <div className="label-sm mb-4">Evolução de Custo Mensal</div>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyTrend}>
+                <defs>
+                  <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(145, 100%, 50%)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(145, 100%, 50%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "hsl(0,0%,40%)", fontSize: 11 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(0,0%,40%)", fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="total" stroke="hsl(145, 100%, 50%)" strokeWidth={2} fill="url(#grad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Category Breakdown */}
+        <div className="bg-card border border-border rounded-lg p-5">
+          <div className="label-sm mb-4">Distribuição por Categoria</div>
+          <div className="h-40 flex justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={categoryBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} strokeWidth={0}>
+                  {categoryBreakdown.map((entry, idx) => (
+                    <Cell key={idx} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: number) => `$${v}`} contentStyle={{ background: "hsl(0,0%,7%)", border: "1px solid hsl(0,0%,17%)", borderRadius: "6px", fontSize: "11px" }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-1.5 mt-3">
+            {categoryBreakdown.map((c) => (
+              <div key={c.name} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
+                  <span className="text-muted-foreground">{c.name}</span>
+                </div>
+                <span className="font-mono text-foreground">${c.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Row: Alerts + Renewals + Opportunities */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Critical Alerts */}
+        <div className="bg-card border border-border rounded-lg p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="label-sm">Alertas Críticos</div>
+            <StatusBadge status="crítico" />
+          </div>
+          <div className="space-y-3">
+            {alerts.filter(a => a.urgency === "crítico" || a.urgency === "alto").slice(0, 4).map(a => (
+              <div key={a.id} className="flex items-start gap-3 p-3 rounded-md bg-secondary/30 border border-border/50">
+                <AlertTriangle className={`h-4 w-4 mt-0.5 shrink-0 ${a.urgency === "crítico" ? "text-destructive" : "text-warning"}`} />
+                <div>
+                  <div className="text-sm font-medium text-foreground">{a.service}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{a.description}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Next Renewals */}
+        <div className="bg-card border border-border rounded-lg p-5">
+          <div className="label-sm mb-4">Próximos Vencimentos</div>
+          <div className="space-y-3">
+            {nextRenewals.slice(0, 5).map(s => (
+              <div key={s.id} className="flex items-center justify-between p-3 rounded-md bg-secondary/30 border border-border/50">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm font-medium text-foreground">{s.provider}</div>
+                    <div className="text-xs text-muted-foreground">{s.nextRenewal}</div>
+                  </div>
+                </div>
+                <span className="font-mono text-sm text-foreground">${s.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Pending Opportunities */}
+        <div className="bg-card border border-border rounded-lg p-5">
+          <div className="label-sm mb-4">Oportunidades Pendentes</div>
+          <div className="space-y-3">
+            {pendingOpps.map(o => (
+              <div key={o.id} className="flex items-start justify-between p-3 rounded-md bg-secondary/30 border border-border/50">
+                <div>
+                  <div className="text-sm font-medium text-foreground flex items-center gap-2">
+                    {o.tool}
+                    <ArrowUpRight className="h-3 w-3 text-primary" />
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{o.reason}</div>
+                </div>
+                <StatusBadge status={o.priority} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
