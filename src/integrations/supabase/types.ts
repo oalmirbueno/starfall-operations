@@ -68,6 +68,7 @@ export type Database = {
           days_until: number | null
           description: string
           id: string
+          infrastructure_asset_id: string | null
           notify_channels: string[] | null
           resolved: boolean
           resolved_at: string | null
@@ -83,6 +84,7 @@ export type Database = {
           days_until?: number | null
           description: string
           id?: string
+          infrastructure_asset_id?: string | null
           notify_channels?: string[] | null
           resolved?: boolean
           resolved_at?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           days_until?: number | null
           description?: string
           id?: string
+          infrastructure_asset_id?: string | null
           notify_channels?: string[] | null
           resolved?: boolean
           resolved_at?: string | null
@@ -108,6 +111,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "alerts_infrastructure_asset_id_fkey"
+            columns: ["infrastructure_asset_id"]
+            isOneToOne: false
+            referencedRelation: "infrastructure_assets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "alerts_subscription_id_fkey"
             columns: ["subscription_id"]
@@ -284,6 +294,7 @@ export type Database = {
       credentials: {
         Row: {
           account: string | null
+          account_id: string | null
           classification: string
           created_at: string
           has_2fa: boolean
@@ -293,6 +304,7 @@ export type Database = {
           owner: string | null
           password_encrypted: string
           provider: string
+          provider_id: string | null
           recovery_info: string | null
           security_notes: string | null
           updated_at: string
@@ -300,6 +312,7 @@ export type Database = {
         }
         Insert: {
           account?: string | null
+          account_id?: string | null
           classification?: string
           created_at?: string
           has_2fa?: boolean
@@ -309,6 +322,7 @@ export type Database = {
           owner?: string | null
           password_encrypted: string
           provider: string
+          provider_id?: string | null
           recovery_info?: string | null
           security_notes?: string | null
           updated_at?: string
@@ -316,6 +330,7 @@ export type Database = {
         }
         Update: {
           account?: string | null
+          account_id?: string | null
           classification?: string
           created_at?: string
           has_2fa?: boolean
@@ -325,12 +340,28 @@ export type Database = {
           owner?: string | null
           password_encrypted?: string
           provider?: string
+          provider_id?: string | null
           recovery_info?: string | null
           security_notes?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "credentials_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_tags: {
         Row: {
@@ -633,6 +664,7 @@ export type Database = {
       subscriptions: {
         Row: {
           account: string | null
+          account_id: string | null
           auto_renew: boolean
           category: string | null
           created_at: string
@@ -643,6 +675,7 @@ export type Database = {
           notes: string | null
           plan: string | null
           provider: string
+          provider_id: string | null
           responsible: string | null
           status: string
           tags: string[] | null
@@ -652,6 +685,7 @@ export type Database = {
         }
         Insert: {
           account?: string | null
+          account_id?: string | null
           auto_renew?: boolean
           category?: string | null
           created_at?: string
@@ -662,6 +696,7 @@ export type Database = {
           notes?: string | null
           plan?: string | null
           provider: string
+          provider_id?: string | null
           responsible?: string | null
           status?: string
           tags?: string[] | null
@@ -671,6 +706,7 @@ export type Database = {
         }
         Update: {
           account?: string | null
+          account_id?: string | null
           auto_renew?: boolean
           category?: string | null
           created_at?: string
@@ -681,6 +717,7 @@ export type Database = {
           notes?: string | null
           plan?: string | null
           provider?: string
+          provider_id?: string | null
           responsible?: string | null
           status?: string
           tags?: string[] | null
@@ -688,7 +725,22 @@ export type Database = {
           user_id?: string
           value?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tags: {
         Row: {
