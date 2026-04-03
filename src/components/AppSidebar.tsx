@@ -1,4 +1,4 @@
-import { LayoutDashboard, CreditCard, Server, KeyRound, Bell, DollarSign, Lightbulb, FileBarChart, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, CreditCard, Server, KeyRound, Bell, DollarSign, Lightbulb, FileBarChart, Settings, LogOut, ChevronRight } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,51 +33,66 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border">
+    <Sidebar collapsible="icon" className="border-r border-border/60">
       <SidebarContent className="flex flex-col h-full">
-        <div className={`flex items-center gap-3 px-4 py-5 border-b border-border ${collapsed ? "justify-center" : ""}`}>
-          <img src={logoAceleriq} alt="Aceleriq" className="h-8 w-8 rounded-md object-contain" />
+        {/* Brand */}
+        <div className={`flex items-center gap-2.5 px-3 py-4 ${collapsed ? "justify-center" : ""}`}>
+          <img src={logoAceleriq} alt="Aceleriq" className="h-7 w-7 rounded-md object-contain" />
           {!collapsed && (
-            <div>
-              <div className="text-sm font-semibold text-foreground tracking-wide">Orion Stack</div>
-              <div className="text-[10px] font-mono text-muted-foreground tracking-widest uppercase">Control</div>
+            <div className="leading-none">
+              <div className="text-[13px] font-semibold text-foreground tracking-wide">Orion Stack</div>
+              <div className="text-[9px] font-mono text-muted-foreground tracking-[0.2em] uppercase">Control</div>
             </div>
           )}
         </div>
-        <SidebarGroup className="flex-1">
+
+        <div className="separator-glow mx-3" />
+
+        {/* Nav */}
+        <SidebarGroup className="flex-1 pt-2">
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      className="hover:bg-secondary/50 text-muted-foreground"
-                      activeClassName="bg-secondary text-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const isActive = item.url === "/" ? location.pathname === "/" : location.pathname.startsWith(item.url);
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={item.url === "/"}
+                        className="group/nav flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-150"
+                        activeClassName="bg-secondary text-foreground font-medium"
+                      >
+                        <item.icon className={`h-[15px] w-[15px] transition-colors ${isActive ? "text-primary" : "text-muted-foreground group-hover/nav:text-foreground"}`} />
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1">{item.title}</span>
+                            {isActive && <ChevronRight className="h-3 w-3 text-primary/50" />}
+                          </>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* User info + logout */}
-        <div className="border-t border-border px-3 py-3">
+        {/* User + Logout */}
+        <div className="px-3 py-3">
+          <div className="separator-glow mb-3" />
           {!collapsed && user && (
-            <div className="text-[11px] text-muted-foreground font-mono truncate mb-2 px-1">
+            <div className="text-[10px] text-muted-foreground font-mono truncate mb-2 px-1 flex items-center gap-1.5">
+              <div className="w-1 h-1 rounded-full bg-primary shrink-0" />
               {user.email}
             </div>
           )}
           <button
             onClick={signOut}
-            className={`flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ${collapsed ? "justify-center" : ""}`}
+            className={`flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-all duration-150 ${collapsed ? "justify-center" : ""}`}
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" />
             {!collapsed && <span>Sair</span>}
           </button>
         </div>
