@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          contact_email: string | null
+          created_at: string
+          external_id: string | null
+          id: string
+          name: string
+          notes: string | null
+          provider_id: string | null
+          responsible: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_email?: string | null
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          provider_id?: string | null
+          responsible?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_email?: string | null
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          provider_id?: string | null
+          responsible?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           alert_date: string
@@ -106,6 +153,134 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_events: {
+        Row: {
+          account_id: string | null
+          amount: number
+          billing_type: string
+          created_at: string
+          currency: string
+          due_date: string | null
+          id: string
+          infrastructure_asset_id: string | null
+          notes: string | null
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          provider_id: string | null
+          reference: string
+          status: string
+          subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          billing_type?: string
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          id?: string
+          infrastructure_asset_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provider_id?: string | null
+          reference: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          billing_type?: string
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          id?: string
+          infrastructure_asset_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provider_id?: string | null
+          reference?: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_events_infrastructure_asset_id_fkey"
+            columns: ["infrastructure_asset_id"]
+            isOneToOne: false
+            referencedRelation: "infrastructure_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_events_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          position: number
+          slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          name: string
+          position?: number
+          slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          position?: number
+          slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credentials: {
         Row: {
           account: string | null
@@ -157,6 +332,137 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_tags: {
+        Row: {
+          created_at: string
+          id: string
+          infrastructure_asset_id: string | null
+          opportunity_id: string | null
+          subscription_id: string | null
+          tag_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          infrastructure_asset_id?: string | null
+          opportunity_id?: string | null
+          subscription_id?: string | null
+          tag_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          infrastructure_asset_id?: string | null
+          opportunity_id?: string | null
+          subscription_id?: string | null
+          tag_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_tags_infrastructure_asset_id_fkey"
+            columns: ["infrastructure_asset_id"]
+            isOneToOne: false
+            referencedRelation: "infrastructure_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_tags_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_tags_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infrastructure_assets: {
+        Row: {
+          account_id: string | null
+          asset_type: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          monthly_cost: number
+          name: string
+          notes: string | null
+          provider_id: string | null
+          region: string | null
+          renewal_date: string | null
+          responsible: string | null
+          status: string
+          updated_at: string
+          usage_summary: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          asset_type: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          monthly_cost?: number
+          name: string
+          notes?: string | null
+          provider_id?: string | null
+          region?: string | null
+          renewal_date?: string | null
+          responsible?: string | null
+          status?: string
+          updated_at?: string
+          usage_summary?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          asset_type?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          monthly_cost?: number
+          name?: string
+          notes?: string | null
+          provider_id?: string | null
+          region?: string | null
+          renewal_date?: string | null
+          responsible?: string | null
+          status?: string
+          updated_at?: string
+          usage_summary?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infrastructure_assets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infrastructure_assets_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_queue: {
         Row: {
           alert_id: string | null
@@ -207,6 +513,57 @@ export type Database = {
           },
         ]
       }
+      opportunities: {
+        Row: {
+          category: string | null
+          created_at: string
+          estimated_cost: number
+          expected_benefit: string | null
+          id: string
+          notes: string | null
+          priority: string
+          reason: string
+          responsible: string | null
+          status: string
+          title: string
+          tool: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          estimated_cost?: number
+          expected_benefit?: string | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          reason: string
+          responsible?: string | null
+          status?: string
+          title: string
+          tool?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          estimated_cost?: number
+          expected_benefit?: string | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          reason?: string
+          responsible?: string | null
+          status?: string
+          title?: string
+          tool?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -234,6 +591,42 @@ export type Database = {
           role_title?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      providers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -297,6 +690,96 @@ export type Database = {
         }
         Relationships: []
       }
+      tags: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_records: {
+        Row: {
+          created_at: string
+          id: string
+          infrastructure_asset_id: string | null
+          metric_name: string
+          metric_unit: string | null
+          metric_value: number
+          notes: string | null
+          recorded_at: string
+          subscription_id: string | null
+          usage_period_end: string | null
+          usage_period_start: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          infrastructure_asset_id?: string | null
+          metric_name: string
+          metric_unit?: string | null
+          metric_value?: number
+          notes?: string | null
+          recorded_at?: string
+          subscription_id?: string | null
+          usage_period_end?: string | null
+          usage_period_start?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          infrastructure_asset_id?: string | null
+          metric_name?: string
+          metric_unit?: string | null
+          metric_value?: number
+          notes?: string | null
+          recorded_at?: string
+          subscription_id?: string | null
+          usage_period_end?: string | null
+          usage_period_start?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_records_infrastructure_asset_id_fkey"
+            columns: ["infrastructure_asset_id"]
+            isOneToOne: false
+            referencedRelation: "infrastructure_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_records_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -321,6 +804,20 @@ export type Database = {
     }
     Functions: {
       compute_alerts: { Args: { p_user_id: string }; Returns: undefined }
+      get_category_cost_breakdown: {
+        Args: { p_user_id: string }
+        Returns: {
+          name: string
+          value: number
+        }[]
+      }
+      get_monthly_cost_trend: {
+        Args: { p_user_id: string }
+        Returns: {
+          month: string
+          total: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
