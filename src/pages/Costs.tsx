@@ -1,10 +1,23 @@
-import { subscriptions, monthlyTrend, categoryBreakdown } from "@/data/mockData";
+import { useCostAnalytics } from "@/hooks/useCostAnalytics";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
-const totalMonthly = subscriptions.reduce((acc, s) => acc + (s.cycle === "mensal" ? s.value : s.cycle === "anual" ? s.value / 12 : s.value / 3), 0);
-const topSpenders = [...subscriptions].sort((a, b) => b.value - a.value).slice(0, 5);
-
 export default function Costs() {
+  const { monthlyTotal, activeServices, monthlyTrend, categoryBreakdown, topSpenders, isLoading } = useCostAnalytics();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5 animate-fade-in">
+        <Skeleton className="h-8 w-44" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">{[1,2,3].map((i) => <Skeleton key={i} className="h-28 rounded-lg" />)}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <Skeleton className="h-72 rounded-lg" />
+          <Skeleton className="h-72 rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
@@ -16,15 +29,15 @@ export default function Costs() {
         <div className="bg-card border border-glow rounded-lg p-4 text-center glow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
           <div className="label-sm mb-1.5">Mensal</div>
-          <div className="text-2xl font-bold text-gradient font-mono">${totalMonthly.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-gradient font-mono">${monthlyTotal.toLocaleString()}</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4 text-center">
           <div className="label-sm mb-1.5">Anual Projetado</div>
-          <div className="text-2xl font-bold text-foreground font-mono">${(totalMonthly * 12).toLocaleString()}</div>
+          <div className="text-2xl font-bold text-foreground font-mono">${(monthlyTotal * 12).toLocaleString()}</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4 text-center">
           <div className="label-sm mb-1.5">Serviços Ativos</div>
-          <div className="text-2xl font-bold text-foreground">{subscriptions.filter(s => s.status === "ativo").length}</div>
+          <div className="text-2xl font-bold text-foreground">{activeServices}</div>
         </div>
       </div>
 
@@ -34,10 +47,10 @@ export default function Costs() {
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyTrend}>
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "hsl(0,0%,42%)", fontSize: 10, fontFamily: "JetBrains Mono" }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(0,0%,42%)", fontSize: 10, fontFamily: "JetBrains Mono" }} tickFormatter={(v) => `$${v}`} width={50} />
-                <Tooltip contentStyle={{ background: "hsl(220,14%,6%)", border: "1px solid hsl(220,10%,16%)", borderRadius: "6px", fontSize: "10px", color: "#fff" }} />
-                <Bar dataKey="total" fill="hsl(145, 85%, 48%)" radius={[3, 3, 0, 0]} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "JetBrains Mono" }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "JetBrains Mono" }} tickFormatter={(v) => `$${v}`} width={50} />
+                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: "10px" }} />
+                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -51,7 +64,7 @@ export default function Costs() {
                 <Pie data={categoryBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={2} strokeWidth={0}>
                   {categoryBreakdown.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
                 </Pie>
-                <Tooltip formatter={(v: number) => `$${v}`} contentStyle={{ background: "hsl(220,14%,6%)", border: "1px solid hsl(220,10%,16%)", borderRadius: "6px", fontSize: "10px", color: "#fff" }} />
+                <Tooltip formatter={(v: number) => `$${v}`} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: "10px" }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -78,7 +91,7 @@ export default function Costs() {
               <span className="text-[10px] font-mono text-muted-foreground w-3 text-right">{i + 1}</span>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[13px] font-medium text-foreground">{s.provider}</span>
+                    <span className="text-[13px] font-medium text-foreground">{s.label}</span>
                   <span className="font-mono text-[13px] text-foreground">${s.value}</span>
                 </div>
                 <div className="h-1 bg-secondary rounded-full overflow-hidden">

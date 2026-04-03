@@ -83,10 +83,6 @@ export function useCostAnalytics() {
       infrastructureQuery.isLoading ||
       trendQuery.isLoading ||
       breakdownQuery.isLoading,
-    error:
-      subscriptionsQuery.error ||
-      infrastructureQuery.error ||
-      trendQuery.error ||
-      breakdownQuery.error,
+    error: infrastructureQuery.error || trendQuery.error || breakdownQuery.error,
   };
 }
