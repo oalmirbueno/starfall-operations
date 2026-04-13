@@ -32,18 +32,51 @@ Deno.serve(async (req) => {
     for (const notification of pending) {
       try {
         if (notification.channel === "email") {
-          // Log the email send attempt - actual SMTP sending requires
-          // an email service configuration (Resend, SendGrid, etc.)
-          console.log(
-            `[EMAIL] To: ${notification.recipient} | Subject: ${notification.subject} | Body: ${notification.body}`
-          );
+          // Real email sending via Resend-compatible API
+          const resendApiKey = Deno.env.get("RESEND_API_KEY");
+          const senderEmail = Deno.env.get("SENDER_EMAIL") || "noreply@notify.parceiros.playbet.app.br";
 
-          await supabase
-            .from("notification_queue")
-            .update({ status: "sent", sent_at: new Date().toISOString() })
-            .eq("id", notification.id);
+          if (!resendApiKey) {
+            // Fallback: log only when no API key configured
+            console.log(
+              `[EMAIL-NO-KEY] To: ${notification.recipient} | Subject: ${notification.subject} | Body: ${notification.body}`
+            );
+            await supabase
+              .from("notification_queue")
+              .update({ status: "failed", error_message: "RESEND_API_KEY not configured" })
+              .eq("id", notification.id);
+            errors.push(`Notification ${notification.id}: RESEND_API_KEY missing`);
+            continue;
+          }
 
-          processed++;
+          const emailRes = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${resendApiKey}`,
+            },
+            body: JSON.stringify({
+              from: senderEmail,
+              to: [notification.recipient],
+              subject: notification.subject || "Notificação",
+              text: notification.body,
+            }),
+          });
+
+          if (emailRes.ok) {
+            await supabase
+              .from("notification_queue")
+              .update({ status: "sent", sent_at: new Date().toISOString() })
+              .eq("id", notification.id);
+            processed++;
+          } else {
+            const errBody = await emailRes.text();
+            await supabase
+              .from("notification_queue")
+              .update({ status: "failed", error_message: errBody })
+              .eq("id", notification.id);
+            errors.push(`Notification ${notification.id}: ${errBody}`);
+          }
         } else if (notification.channel === "telegram") {
           const telegramToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
           if (!telegramToken) {
@@ -82,8 +115,35 @@ Deno.serve(async (req) => {
               .eq("id", notification.id);
             errors.push(`Notification ${notification.id}: ${errBody}`);
           }
+        } else if (notification.channel === "webhook") {
+          // Webhook: POST to the recipient URL
+          const webhookRes = await fetch(notification.recipient, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              subject: notification.subject,
+              body: notification.body,
+              alert_id: notification.alert_id,
+              channel: "webhook",
+              sent_at: new Date().toISOString(),
+            }),
+          });
+
+          if (webhookRes.ok) {
+            await supabase
+              .from("notification_queue")
+              .update({ status: "sent", sent_at: new Date().toISOString() })
+              .eq("id", notification.id);
+            processed++;
+          } else {
+            const errBody = await webhookRes.text();
+            await supabase
+              .from("notification_queue")
+              .update({ status: "failed", error_message: errBody })
+              .eq("id", notification.id);
+            errors.push(`Notification ${notification.id}: ${errBody}`);
+          }
         } else {
-          // Unknown channel - mark as failed
           await supabase
             .from("notification_queue")
             .update({ status: "failed", error_message: `Unknown channel: ${notification.channel}` })
