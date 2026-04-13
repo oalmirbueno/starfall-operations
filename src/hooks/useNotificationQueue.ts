@@ -5,9 +5,11 @@ import { toast } from "sonner";
 
 const db = supabase as any;
 
+type NotificationChannel = "email" | "telegram" | "webhook";
+
 interface EnqueueInput {
   alertId?: string;
-  channel: "email" | "telegram" | "push";
+  channel: NotificationChannel;
   recipient: string;
   subject?: string;
   body: string;
@@ -52,7 +54,7 @@ export function useNotificationQueue() {
     for (const channel of channels) {
       await enqueue.mutateAsync({
         alertId: alert.id,
-        channel: channel as "email" | "telegram" | "push",
+        channel: channel as NotificationChannel,
         recipient: recipientEmail,
         subject,
         body,
