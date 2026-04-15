@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useSubscriptions, SubscriptionRow } from "@/hooks/useSubscriptions";
+import { useAlerts } from "@/hooks/useAlerts";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign } from "lucide-react";
+import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,8 +27,17 @@ function getNextRenewal(current: string, cycle: string): string {
   return d.toISOString().split("T")[0];
 }
 
+/** Normaliza valor mensal independente do ciclo */
+function monthlyValue(s: SubscriptionRow): number {
+  const v = Number(s.value);
+  if (s.cycle === "anual") return v / 12;
+  if (s.cycle === "trimestral") return v / 3;
+  return v;
+}
+
 export default function Subscriptions() {
   const { subscriptions, isLoading, create, update, remove } = useSubscriptions();
+  const { computeAlerts } = useAlerts();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
@@ -38,6 +48,19 @@ export default function Subscriptions() {
 
   const categories = ["all", ...Array.from(new Set(subscriptions.map(s => s.category).filter(Boolean)))];
 
+  const activeSubscriptions = subscriptions.filter(s => s.status === "ativo");
+
+  // Cost calculations
+  const totalMensal = activeSubscriptions.reduce((sum, s) => sum + monthlyValue(s), 0);
+  const totalPago = activeSubscriptions
+    .filter(s => (s as any).payment_status === "pago")
+    .reduce((sum, s) => sum + monthlyValue(s), 0);
+  const totalPendente = activeSubscriptions
+    .filter(s => (s as any).payment_status !== "pago")
+    .reduce((sum, s) => sum + monthlyValue(s), 0);
+  const pendingCount = activeSubscriptions.filter(s => (s as any).payment_status !== "pago").length;
+  const paidCount = activeSubscriptions.filter(s => (s as any).payment_status === "pago").length;
+
   const filtered = subscriptions.filter(s => {
     const matchSearch = s.provider.toLowerCase().includes(search.toLowerCase()) || (s.account ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCategory = categoryFilter === "all" || s.category === categoryFilter;
@@ -45,16 +68,6 @@ export default function Subscriptions() {
     const matchPayment = paymentFilter === "all" || ps === paymentFilter;
     return matchSearch && matchCategory && matchPayment;
   });
-
-  const totalMensal = subscriptions.filter(s => s.status === "ativo").reduce((sum, s) => {
-    const v = Number(s.value);
-    if (s.cycle === "anual") return sum + v / 12;
-    if (s.cycle === "trimestral") return sum + v / 3;
-    return sum + v;
-  }, 0);
-
-  const pendingCount = subscriptions.filter(s => (s as any).payment_status !== "pago" && s.status === "ativo").length;
-  const paidCount = subscriptions.filter(s => (s as any).payment_status === "pago").length;
 
   const openCreate = () => { setEditing(null); setForm(defaultForm); setFormOpen(true); };
   const openEdit = (s: SubscriptionRow) => {
@@ -80,6 +93,8 @@ export default function Subscriptions() {
     if (editing) await update.mutateAsync({ id: editing.id, ...payload });
     else await create.mutateAsync(payload);
     setFormOpen(false);
+    // Recalculate alerts after any change
+    setTimeout(() => computeAlerts.mutate(), 500);
   };
 
   const markPaid = async (s: SubscriptionRow) => {
@@ -90,7 +105,17 @@ export default function Subscriptions() {
       last_paid_at: new Date().toISOString(),
       ...(nextDate ? { next_renewal: nextDate } : {}),
     } as any);
-    toast.success(`${s.provider} marcado como pago — renovação avançada`);
+    toast.success(`${s.provider} pago — renovação avançada para ${nextDate ?? "próximo ciclo"}`);
+    // Recalculate alerts since renewal date changed
+    setTimeout(() => computeAlerts.mutate(), 500);
+  };
+
+  const markUnpaid = async (s: SubscriptionRow) => {
+    await update.mutateAsync({
+      id: s.id,
+      payment_status: "pendente",
+    } as any);
+    toast.info(`${s.provider} marcado como pendente`);
   };
 
   if (isLoading) return (
@@ -110,25 +135,41 @@ export default function Subscriptions() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-card border border-border rounded-lg p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Mensal</div>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <button onClick={() => setPaymentFilter("all")}
+          className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "all" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
+          <div className="flex items-center gap-1.5 mb-1"><DollarSign className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Mensal</span></div>
           <div className="text-lg font-bold text-foreground font-mono">R$ {totalMensal.toFixed(2)}</div>
-        </div>
-        <div className="bg-card border border-border rounded-lg p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Assinaturas</div>
-          <div className="text-lg font-bold text-foreground">{subscriptions.length}</div>
-        </div>
-        <button onClick={() => setPaymentFilter(paymentFilter === "pendente" ? "all" : "pendente")}
-          className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "pendente" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">A Pagar</div>
-          <div className="text-lg font-bold text-destructive">{pendingCount}</div>
+          <div className="text-[10px] text-muted-foreground">{activeSubscriptions.length} assinaturas ativas</div>
         </button>
+
         <button onClick={() => setPaymentFilter(paymentFilter === "pago" ? "all" : "pago")}
           className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "pago" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Pagos</div>
-          <div className="text-lg font-bold text-primary">{paidCount}</div>
+          <div className="flex items-center gap-1.5 mb-1"><Check className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Já Pago</span></div>
+          <div className="text-lg font-bold text-primary font-mono">R$ {totalPago.toFixed(2)}</div>
+          <div className="text-[10px] text-muted-foreground">{paidCount} pagas</div>
         </button>
+
+        <button onClick={() => setPaymentFilter(paymentFilter === "pendente" ? "all" : "pendente")}
+          className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "pendente" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
+          <div className="flex items-center gap-1.5 mb-1"><CircleDollarSign className="h-3.5 w-3.5 text-destructive" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Pendente</span></div>
+          <div className="text-lg font-bold text-destructive font-mono">R$ {totalPendente.toFixed(2)}</div>
+          <div className="text-[10px] text-muted-foreground">{pendingCount} a pagar</div>
+        </button>
+
+        <div className="bg-card border border-border rounded-lg p-3">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Progresso do Mês</div>
+          <div className="text-lg font-bold text-foreground">{totalMensal > 0 ? Math.round((totalPago / totalMensal) * 100) : 0}%</div>
+          <div className="w-full bg-secondary rounded-full h-1.5 mt-1">
+            <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${totalMensal > 0 ? (totalPago / totalMensal) * 100 : 0}%` }} />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-3">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Projeção Anual</div>
+          <div className="text-lg font-bold text-foreground font-mono">R$ {(totalMensal * 12).toFixed(0)}</div>
+          <div className="text-[10px] text-muted-foreground">12 meses</div>
+        </div>
       </div>
 
       {/* Filters */}
@@ -169,7 +210,7 @@ export default function Subscriptions() {
                   <th className="text-right px-4 py-3 label-sm">Valor</th>
                   <th className="text-left px-4 py-3 label-sm">Ciclo</th>
                   <th className="text-left px-4 py-3 label-sm">Renovação</th>
-                  <th className="text-center px-4 py-3 label-sm">Pgto</th>
+                  <th className="text-center px-4 py-3 label-sm">Pagamento</th>
                   <th className="text-left px-4 py-3 label-sm">Status</th>
                   <th className="text-right px-4 py-3 label-sm">Ações</th>
                 </tr>
@@ -179,7 +220,7 @@ export default function Subscriptions() {
                   const ps = (s as any).payment_status ?? "pendente";
                   const isPaid = ps === "pago";
                   return (
-                    <tr key={s.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
+                    <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${!isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
                       <td className="px-4 py-3">
                         <div className="font-medium text-foreground">{s.provider}</div>
                         {s.account && <div className="text-[10px] text-muted-foreground font-mono">{s.account}</div>}
@@ -190,9 +231,10 @@ export default function Subscriptions() {
                       <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.next_renewal ?? "—"}</td>
                       <td className="px-4 py-3 text-center">
                         {isPaid ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          <button onClick={() => markUnpaid(s)}
+                            className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors" title="Clique para desfazer">
                             <Check className="h-3 w-3" /> Pago
-                          </span>
+                          </button>
                         ) : (
                           <button onClick={() => markPaid(s)}
                             className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
@@ -211,6 +253,20 @@ export default function Subscriptions() {
                   );
                 })}
               </tbody>
+              {/* Footer totals */}
+              <tfoot>
+                <tr className="bg-secondary/20 border-t border-border">
+                  <td colSpan={2} className="px-4 py-2 text-xs font-medium text-foreground">
+                    {paymentFilter === "pago" ? "Total Pago" : paymentFilter === "pendente" ? "Total Pendente" : "Total Mensal"}
+                  </td>
+                  <td className="px-4 py-2 text-right font-mono font-bold text-foreground text-sm">
+                    R$ {filtered.filter(s => s.status === "ativo").reduce((sum, s) => sum + monthlyValue(s), 0).toFixed(2)}
+                  </td>
+                  <td colSpan={5} className="px-4 py-2 text-xs text-muted-foreground">
+                    {filtered.length} {filtered.length === 1 ? "item" : "itens"} exibidos
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
@@ -221,7 +277,7 @@ export default function Subscriptions() {
           <DialogHeader><DialogTitle className="text-destructive">Eliminar Assinatura</DialogTitle><DialogDescription>Esta ação é irreversível.</DialogDescription></DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={async () => { if (deleteConfirm) { await remove.mutateAsync(deleteConfirm); setDeleteConfirm(null); } }}>Eliminar</Button>
+            <Button variant="destructive" onClick={async () => { if (deleteConfirm) { await remove.mutateAsync(deleteConfirm); setDeleteConfirm(null); setTimeout(() => computeAlerts.mutate(), 500); } }}>Eliminar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
