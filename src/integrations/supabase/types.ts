@@ -422,6 +422,42 @@ export type Database = {
           },
         ]
       }
+      ideas: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          priority: string
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          priority?: string
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          priority?: string
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       infrastructure_assets: {
         Row: {
           account_id: string | null
@@ -671,8 +707,10 @@ export type Database = {
           currency: string
           cycle: string
           id: string
+          last_paid_at: string | null
           next_renewal: string | null
           notes: string | null
+          payment_status: string
           plan: string | null
           provider: string
           provider_id: string | null
@@ -692,8 +730,10 @@ export type Database = {
           currency?: string
           cycle?: string
           id?: string
+          last_paid_at?: string | null
           next_renewal?: string | null
           notes?: string | null
+          payment_status?: string
           plan?: string | null
           provider: string
           provider_id?: string | null
@@ -713,8 +753,10 @@ export type Database = {
           currency?: string
           cycle?: string
           id?: string
+          last_paid_at?: string | null
           next_renewal?: string | null
           notes?: string | null
+          payment_status?: string
           plan?: string | null
           provider?: string
           provider_id?: string | null
