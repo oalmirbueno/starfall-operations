@@ -15,6 +15,12 @@ const COLORS = [
   "hsl(var(--primary) / 0.55)",
 ];
 
+function monthlyValue(value: number, cycle: string): number {
+  if (cycle === "anual") return value / 12;
+  if (cycle === "trimestral") return value / 3;
+  return value;
+}
+
 export function useCostAnalytics() {
   const { user } = useAuth();
   const subscriptionsQuery = useSubscriptions();
@@ -43,46 +49,46 @@ export function useCostAnalytics() {
     },
   });
 
-  const topSpenders = [
-    ...subscriptionsQuery.subscriptions.map((item) => ({
+  // Build top spenders from subscriptions only (infra items should be tracked as subscriptions too)
+  const activeSubscriptions = subscriptionsQuery.subscriptions.filter(s => s.status === "ativo");
+
+  const topSpenders = activeSubscriptions
+    .map(item => ({
       id: item.id,
-      label: item.provider,
-      value: Number(item.value),
+      label: item.provider + (item.account ? ` (${item.account})` : ""),
+      value: monthlyValue(Number(item.value), item.cycle),
       kind: "subscription",
-    })),
-    ...infrastructureQuery.infrastructure.map((item) => ({
-      id: item.id,
-      label: item.name,
-      value: Number(item.monthly_cost),
-      kind: "infrastructure",
-    })),
-  ]
+    }))
     .sort((a, b) => b.value - a.value)
-    .slice(0, 5);
+    .slice(0, 8);
 
-  const monthlySubscriptionCost = subscriptionsQuery.subscriptions.reduce((acc, item) => {
-    const value = Number(item.value);
-    if (item.cycle === "anual") return acc + value / 12;
-    if (item.cycle === "trimestral") return acc + value / 3;
-    return acc + value;
-  }, 0);
-
-  const monthlyInfrastructureCost = infrastructureQuery.infrastructure.reduce(
-    (acc, item) => acc + Number(item.monthly_cost),
+  // Total mensal = soma das assinaturas ativas (que já incluem VPS etc)
+  const monthlyTotal = activeSubscriptions.reduce(
+    (acc, item) => acc + monthlyValue(Number(item.value), item.cycle),
     0,
   );
 
+  // Payment breakdown
+  const totalPago = activeSubscriptions
+    .filter(s => (s as any).payment_status === "pago")
+    .reduce((acc, s) => acc + monthlyValue(Number(s.value), s.cycle), 0);
+
+  const totalPendente = activeSubscriptions
+    .filter(s => (s as any).payment_status !== "pago")
+    .reduce((acc, s) => acc + monthlyValue(Number(s.value), s.cycle), 0);
+
   return {
-    monthlyTotal: monthlySubscriptionCost + monthlyInfrastructureCost,
-    activeServices: subscriptionsQuery.subscriptions.filter((item) => item.status === "ativo").length,
+    monthlyTotal,
+    totalPago,
+    totalPendente,
+    activeServices: activeSubscriptions.length,
     monthlyTrend: trendQuery.data ?? [],
     categoryBreakdown: breakdownQuery.data ?? [],
     topSpenders,
     isLoading:
       subscriptionsQuery.isLoading ||
-      infrastructureQuery.isLoading ||
       trendQuery.isLoading ||
       breakdownQuery.isLoading,
-    error: infrastructureQuery.error || trendQuery.error || breakdownQuery.error,
+    error: trendQuery.error || breakdownQuery.error,
   };
 }
