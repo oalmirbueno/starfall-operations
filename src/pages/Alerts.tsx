@@ -82,6 +82,24 @@ export default function Alerts() {
         ))}
       </div>
 
+      {alerts.length > 0 && (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Ordenar:</span>
+          {([
+            { key: "urgency" as const, label: "Urgência" },
+            { key: "days" as const, label: "Dias restantes" },
+            { key: "date" as const, label: "Data" },
+          ]).map(opt => (
+            <button key={opt.key} onClick={() => toggleSort(opt.key)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-colors ${
+                sortKey === opt.key ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
+              }`}>
+              {opt.label} <SortIcon k={opt.key} />
+            </button>
+          ))}
+        </div>
+      )}
+
       {alerts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <BellOff className="h-12 w-12 text-muted-foreground/30 mb-4" />
