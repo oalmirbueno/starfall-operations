@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAlerts } from "@/hooks/useAlerts";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { StatusBadge } from "@/components/StatusBadge";
-import { AlertTriangle, Clock, UserX, DollarSign, ToggleLeft, RefreshCw, CheckCircle, Bell, BellOff, ExternalLink } from "lucide-react";
+import { AlertTriangle, Clock, UserX, DollarSign, ToggleLeft, RefreshCw, CheckCircle, Bell, BellOff, ExternalLink, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
@@ -17,11 +17,27 @@ export default function Alerts() {
   const { alerts, isLoading, computeAlerts, resolve } = useAlerts();
   const { subscriptions } = useSubscriptions();
   const [filter, setFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<"urgency" | "days" | "date">("urgency");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
   const navigate = useNavigate();
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir(d => (d === 1 ? -1 : 1));
+    else { setSortKey(key); setSortDir(1); }
+  };
+
+  const SortIcon = ({ k }: { k: typeof sortKey }) =>
+    sortKey === k ? (sortDir === 1 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />;
 
   const sorted = [...alerts]
     .filter(a => filter === "all" || a.urgency === filter)
-    .sort((a, b) => (urgencyOrder[a.urgency] ?? 9) - (urgencyOrder[b.urgency] ?? 9));
+    .sort((a, b) => {
+      const dir = sortDir;
+      if (sortKey === "urgency") return ((urgencyOrder[a.urgency] ?? 9) - (urgencyOrder[b.urgency] ?? 9)) * dir;
+      if (sortKey === "days") return ((a.days_until ?? 9999) - (b.days_until ?? 9999)) * dir;
+      if (sortKey === "date") return (a.alert_date.localeCompare(b.alert_date)) * dir;
+      return 0;
+    });
 
   const counts = {
     critico: alerts.filter(a => a.urgency === "critico").length,
@@ -65,6 +81,24 @@ export default function Alerts() {
           </button>
         ))}
       </div>
+
+      {alerts.length > 0 && (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Ordenar:</span>
+          {([
+            { key: "urgency" as const, label: "Urgência" },
+            { key: "days" as const, label: "Dias restantes" },
+            { key: "date" as const, label: "Data" },
+          ]).map(opt => (
+            <button key={opt.key} onClick={() => toggleSort(opt.key)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-colors ${
+                sortKey === opt.key ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
+              }`}>
+              {opt.label} <SortIcon k={opt.key} />
+            </button>
+          ))}
+        </div>
+      )}
 
       {alerts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
