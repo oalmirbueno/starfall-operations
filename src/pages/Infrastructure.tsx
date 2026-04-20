@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useInfrastructure, InfrastructureAssetInput, InfrastructureAssetRow } from "@/hooks/useInfrastructure";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Server, Cpu, HardDrive, Plus, Edit, Trash2, Search, Activity, Calendar, DollarSign } from "lucide-react";
+import { Server, Cpu, HardDrive, Plus, Edit, Trash2, Search, Activity, Calendar, DollarSign, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,10 +19,17 @@ const defaultForm: InfrastructureAssetInput = {
   region: "", ip_address: "", renewal_date: "", monthly_cost: 0, usage_summary: "", responsible: "", notes: "",
 };
 
+type SortKey = "renewal" | "cost" | "status" | "name";
+type SortDir = "asc" | "desc";
+
+const statusOrder: Record<string, number> = { online: 0, "manutenção": 1, offline: 2, decommissioned: 3 };
+
 export default function Infrastructure() {
   const { infrastructure, isLoading, create, update, remove } = useInfrastructure();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<SortKey>("renewal");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [formOpen, setFormOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editing, setEditing] = useState<InfrastructureAssetRow | null>(null);
@@ -33,7 +40,25 @@ export default function Infrastructure() {
     const matchSearch = haystack.includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || item.status === statusFilter;
     return matchSearch && matchStatus;
+  }).sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortKey === "renewal") {
+      const da = a.renewal_date ? new Date(a.renewal_date).getTime() : Infinity;
+      const db = b.renewal_date ? new Date(b.renewal_date).getTime() : Infinity;
+      return (da - db) * dir;
+    }
+    if (sortKey === "cost") return (Number(a.monthly_cost) - Number(b.monthly_cost)) * dir;
+    if (sortKey === "status") return ((statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99)) * dir;
+    return a.name.localeCompare(b.name) * dir;
   });
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+  const sortIcon = (key: SortKey) => sortKey !== key
+    ? <ArrowUpDown className="h-3 w-3 opacity-40" />
+    : sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />;
 
   const totalCost = infrastructure.filter(i => i.status !== "decommissioned").reduce((s, i) => s + Number(i.monthly_cost), 0);
   const onlineCount = infrastructure.filter(i => i.status === "online").length;
