@@ -235,11 +235,17 @@ export default function Subscriptions() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-secondary/30">
-                  <th className="text-left px-4 py-3 label-sm">Provider</th>
+                  <th className="text-left px-4 py-3 label-sm">
+                    <button onClick={() => toggleSort("provider")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Provider {sortIcon("provider")}</button>
+                  </th>
                   <th className="text-left px-4 py-3 label-sm">Plano</th>
-                  <th className="text-right px-4 py-3 label-sm">Valor</th>
+                  <th className="text-right px-4 py-3 label-sm">
+                    <button onClick={() => toggleSort("value")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Valor {sortIcon("value")}</button>
+                  </th>
                   <th className="text-left px-4 py-3 label-sm">Ciclo</th>
-                  <th className="text-left px-4 py-3 label-sm">Renovação</th>
+                  <th className="text-left px-4 py-3 label-sm">
+                    <button onClick={() => toggleSort("renewal")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Renovação {sortIcon("renewal")}</button>
+                  </th>
                   <th className="text-center px-4 py-3 label-sm">Pagamento</th>
                   <th className="text-left px-4 py-3 label-sm">Status</th>
                   <th className="text-right px-4 py-3 label-sm">Ações</th>
