@@ -122,6 +122,14 @@ export default function Subscriptions() {
     setTimeout(() => computeAlerts.mutate(), 500);
   };
 
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["subscriptions"] });
+    qc.invalidateQueries({ queryKey: ["infrastructure"] });
+    qc.invalidateQueries({ queryKey: ["cost-trend"] });
+    qc.invalidateQueries({ queryKey: ["cost-breakdown"] });
+    qc.invalidateQueries({ queryKey: ["alerts"] });
+  };
+
   const markPaid = async (s: SubscriptionRow) => {
     const nextDate = s.next_renewal ? getNextRenewal(s.next_renewal, s.cycle) : null;
     await update.mutateAsync({
@@ -131,16 +139,13 @@ export default function Subscriptions() {
       ...(nextDate ? { next_renewal: nextDate } : {}),
     } as any);
     toast.success(`${s.provider} pago — renovação avançada para ${nextDate ?? "próximo ciclo"}`);
-    // Recalculate alerts since renewal date changed
-    setTimeout(() => computeAlerts.mutate(), 500);
+    setTimeout(() => { computeAlerts.mutate(); invalidateAll(); }, 300);
   };
 
   const markUnpaid = async (s: SubscriptionRow) => {
-    await update.mutateAsync({
-      id: s.id,
-      payment_status: "pendente",
-    } as any);
+    await update.mutateAsync({ id: s.id, payment_status: "pendente" } as any);
     toast.info(`${s.provider} marcado como pendente`);
+    setTimeout(() => { computeAlerts.mutate(); invalidateAll(); }, 300);
   };
 
   if (isLoading) return (
