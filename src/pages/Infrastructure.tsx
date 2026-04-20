@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useInfrastructure, InfrastructureAssetInput, InfrastructureAssetRow } from "@/hooks/useInfrastructure";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Server, Cpu, HardDrive, Plus, Edit, Trash2, Search, Activity, Calendar, DollarSign } from "lucide-react";
+import { Server, Cpu, HardDrive, Plus, Edit, Trash2, Search, Activity, Calendar, DollarSign, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,10 +19,17 @@ const defaultForm: InfrastructureAssetInput = {
   region: "", ip_address: "", renewal_date: "", monthly_cost: 0, usage_summary: "", responsible: "", notes: "",
 };
 
+type SortKey = "renewal" | "cost" | "status" | "name";
+type SortDir = "asc" | "desc";
+
+const statusOrder: Record<string, number> = { online: 0, "manutenção": 1, offline: 2, decommissioned: 3 };
+
 export default function Infrastructure() {
   const { infrastructure, isLoading, create, update, remove } = useInfrastructure();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<SortKey>("renewal");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [formOpen, setFormOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editing, setEditing] = useState<InfrastructureAssetRow | null>(null);
@@ -33,7 +40,25 @@ export default function Infrastructure() {
     const matchSearch = haystack.includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || item.status === statusFilter;
     return matchSearch && matchStatus;
+  }).sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortKey === "renewal") {
+      const da = a.renewal_date ? new Date(a.renewal_date).getTime() : Infinity;
+      const db = b.renewal_date ? new Date(b.renewal_date).getTime() : Infinity;
+      return (da - db) * dir;
+    }
+    if (sortKey === "cost") return (Number(a.monthly_cost) - Number(b.monthly_cost)) * dir;
+    if (sortKey === "status") return ((statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99)) * dir;
+    return a.name.localeCompare(b.name) * dir;
   });
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+  const sortIcon = (key: SortKey) => sortKey !== key
+    ? <ArrowUpDown className="h-3 w-3 opacity-40" />
+    : sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />;
 
   const totalCost = infrastructure.filter(i => i.status !== "decommissioned").reduce((s, i) => s + Number(i.monthly_cost), 0);
   const onlineCount = infrastructure.filter(i => i.status === "online").length;
@@ -98,17 +123,33 @@ export default function Infrastructure() {
         </div>
       </div>
 
-      {/* Search + filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar recurso..." className="bg-secondary/40 pl-9" />
+      {/* Search + filter + sort */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar recurso..." className="bg-secondary/40 pl-9" />
+          </div>
+          <div className="flex gap-1">
+            {["all", "online", "offline", "manutenção"].map(s => (
+              <button key={s} onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
+                {s === "all" ? "Todos" : s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-1">
-          {["all", "online", "offline", "manutenção"].map(s => (
-            <button key={s} onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
-              {s === "all" ? "Todos" : s.charAt(0).toUpperCase() + s.slice(1)}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Ordenar por:</span>
+          {([
+            { key: "renewal" as SortKey, label: "Renovação" },
+            { key: "cost" as SortKey, label: "Custo" },
+            { key: "status" as SortKey, label: "Status" },
+            { key: "name" as SortKey, label: "Nome" },
+          ]).map(opt => (
+            <button key={opt.key} onClick={() => toggleSort(opt.key)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${sortKey === opt.key ? "bg-primary/10 text-primary border border-primary/30" : "bg-secondary text-muted-foreground hover:text-foreground border border-transparent"}`}>
+              {opt.label} {sortIcon(opt.key)}
             </button>
           ))}
         </div>

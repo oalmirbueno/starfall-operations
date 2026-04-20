@@ -36,7 +36,7 @@ function monthlyValue(s: SubscriptionRow): number {
   return v;
 }
 
-type SortKey = "renewal" | "value" | "provider" | "updated";
+type SortKey = "renewal" | "value" | "provider" | "payment" | "updated";
 type SortDir = "asc" | "desc";
 
 export default function Subscriptions() {
@@ -83,6 +83,12 @@ export default function Subscriptions() {
     }
     if (sortKey === "value") return (monthlyValue(a) - monthlyValue(b)) * dir;
     if (sortKey === "provider") return a.provider.localeCompare(b.provider) * dir;
+    if (sortKey === "payment") {
+      // pendente primeiro em asc, pago primeiro em desc
+      const pa = ((a as any).payment_status ?? "pendente") === "pago" ? 1 : 0;
+      const pb = ((b as any).payment_status ?? "pendente") === "pago" ? 1 : 0;
+      return (pa - pb) * dir;
+    }
     return (new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()) * dir;
   });
 
@@ -246,7 +252,9 @@ export default function Subscriptions() {
                   <th className="text-left px-4 py-3 label-sm">
                     <button onClick={() => toggleSort("renewal")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Renovação {sortIcon("renewal")}</button>
                   </th>
-                  <th className="text-center px-4 py-3 label-sm">Pagamento</th>
+                  <th className="text-center px-4 py-3 label-sm">
+                    <button onClick={() => toggleSort("payment")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Pagamento {sortIcon("payment")}</button>
+                  </th>
                   <th className="text-left px-4 py-3 label-sm">Status</th>
                   <th className="text-right px-4 py-3 label-sm">Ações</th>
                 </tr>
