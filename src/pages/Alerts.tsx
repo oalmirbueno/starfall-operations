@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAlerts } from "@/hooks/useAlerts";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { StatusBadge } from "@/components/StatusBadge";
-import { AlertTriangle, Clock, UserX, DollarSign, ToggleLeft, RefreshCw, CheckCircle, Bell, BellOff, ExternalLink } from "lucide-react";
+import { AlertTriangle, Clock, UserX, DollarSign, ToggleLeft, RefreshCw, CheckCircle, Bell, BellOff, ExternalLink, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
