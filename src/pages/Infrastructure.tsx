@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useInfrastructure, InfrastructureAssetInput, InfrastructureAssetRow } from "@/hooks/useInfrastructure";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Server, Cpu, HardDrive, Plus, Edit, Trash2, Search, Activity, Calendar, DollarSign, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Server, Cpu, HardDrive, Plus, Edit, Trash2, Search, Activity, Calendar, DollarSign, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, CircleDollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,18 +36,18 @@ export default function Infrastructure() {
   const [form, setForm] = useState<InfrastructureAssetInput>(defaultForm);
 
   const filtered = infrastructure.filter(item => {
-    const haystack = [item.name, item.asset_type, item.provider_name, item.region, item.ip_address].join(" ").toLowerCase();
+    const haystack = [item.name, item.asset_type, item.provider_name, item.region, item.ip_address, item.payment_status].join(" ").toLowerCase();
     const matchSearch = haystack.includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || item.status === statusFilter;
     return matchSearch && matchStatus;
   }).sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     if (sortKey === "renewal") {
-      const da = a.renewal_date ? new Date(a.renewal_date).getTime() : Infinity;
-      const db = b.renewal_date ? new Date(b.renewal_date).getTime() : Infinity;
+      const da = a.effective_renewal_date ? new Date(a.effective_renewal_date).getTime() : Infinity;
+      const db = b.effective_renewal_date ? new Date(b.effective_renewal_date).getTime() : Infinity;
       return (da - db) * dir;
     }
-    if (sortKey === "cost") return (Number(a.monthly_cost) - Number(b.monthly_cost)) * dir;
+    if (sortKey === "cost") return (Number(a.effective_monthly_cost ?? a.monthly_cost) - Number(b.effective_monthly_cost ?? b.monthly_cost)) * dir;
     if (sortKey === "status") return ((statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99)) * dir;
     return a.name.localeCompare(b.name) * dir;
   });
@@ -60,10 +60,11 @@ export default function Infrastructure() {
     ? <ArrowUpDown className="h-3 w-3 opacity-40" />
     : sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />;
 
-  const totalCost = infrastructure.filter(i => i.status !== "decommissioned").reduce((s, i) => s + Number(i.monthly_cost), 0);
+  const totalCost = infrastructure.filter(i => i.status !== "decommissioned").reduce((s, i) => s + Number(i.effective_monthly_cost ?? i.monthly_cost), 0);
   const onlineCount = infrastructure.filter(i => i.status === "online").length;
   const nextRenewal = infrastructure
-    .filter(i => i.renewal_date).sort((a, b) => (a.renewal_date ?? "").localeCompare(b.renewal_date ?? ""))[0];
+    .filter(i => i.effective_renewal_date)
+    .sort((a, b) => (a.effective_renewal_date ?? "").localeCompare(b.effective_renewal_date ?? ""))[0];
 
   const openCreate = () => { setEditing(null); setForm(defaultForm); setFormOpen(true); };
   const openEdit = (item: InfrastructureAssetRow) => {
@@ -97,12 +98,11 @@ export default function Infrastructure() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-foreground">Infraestrutura</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">VPS, servidores, instâncias e recursos IaaS</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Visualização organizada dos recursos vinculados às assinaturas</p>
         </div>
         <Button size="sm" className="gap-1.5" onClick={openCreate}><Plus className="h-3.5 w-3.5" /> Novo Recurso</Button>
       </div>
 
-      {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-card border border-border rounded-lg p-3">
           <div className="flex items-center gap-1.5 mb-1"><DollarSign className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Custo Mensal</span></div>
@@ -118,12 +118,11 @@ export default function Infrastructure() {
         </div>
         <div className="bg-card border border-border rounded-lg p-3">
           <div className="flex items-center gap-1.5 mb-1"><Calendar className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Próx. Renovação</span></div>
-          <div className="text-sm font-mono text-foreground">{nextRenewal?.renewal_date ?? "—"}</div>
+          <div className="text-sm font-mono text-foreground">{nextRenewal?.effective_renewal_date ?? "—"}</div>
           {nextRenewal && <div className="text-[10px] text-muted-foreground">{nextRenewal.name}</div>}
         </div>
       </div>
 
-      {/* Search + filter + sort */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -164,47 +163,64 @@ export default function Infrastructure() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 canvas-stagger">
           {filtered.map(r => {
             const TypeIcon = typeIcons[r.asset_type] || Server;
-            const daysUntil = r.renewal_date ? Math.ceil((new Date(r.renewal_date).getTime() - Date.now()) / 86400000) : null;
+            const renewalDate = r.effective_renewal_date ?? r.renewal_date;
+            const monthlyCost = Number(r.effective_monthly_cost ?? r.monthly_cost);
+            const daysUntil = renewalDate ? Math.ceil((new Date(renewalDate).getTime() - Date.now()) / 86400000) : null;
+            const isPaid = r.payment_status === "pago";
             return (
               <div key={r.id} className={`bg-card border rounded-lg p-4 card-hover group ${daysUntil !== null && daysUntil <= 7 ? "border-destructive/40" : "border-border"}`}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between mb-3 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <div className={`p-1.5 rounded-md ${r.status === "online" ? "bg-primary/10" : "bg-muted"}`}>
                       <TypeIcon className={`h-3.5 w-3.5 ${r.status === "online" ? "text-primary" : "text-muted-foreground"}`} />
                     </div>
-                    <div>
-                      <span className="text-[13px] font-medium text-foreground">{r.name}</span>
-                      <span className="text-[10px] text-muted-foreground ml-1.5 font-mono">{r.asset_type}</span>
+                    <div className="min-w-0">
+                      <span className="text-[13px] font-medium text-foreground block truncate">{r.name}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <span className="text-[10px] text-muted-foreground font-mono">{r.asset_type}</span>
+                        {r.linked_subscription_id && (
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${isPaid ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+                            {isPaid ? <CheckCircle2 className="h-3 w-3" /> : <CircleDollarSign className="h-3 w-3" />}
+                            {isPaid ? "Pago" : "Pendente"}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button onClick={() => openEdit(r)} className="text-muted-foreground hover:text-primary p-1"><Edit className="h-3.5 w-3.5" /></button>
                     <button onClick={() => setDeleteConfirm(r.id)} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="h-3.5 w-3.5" /></button>
                     <StatusBadge status={r.status} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Provider</span><span className="text-foreground">{r.provider_name ?? "—"}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Região</span><span className="text-foreground font-mono text-[10px]">{r.region ?? "—"}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">IP</span><span className="text-foreground font-mono text-[10px]">{r.ip_address ?? "—"}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Uso</span><span className="text-primary font-mono">{r.usage_summary ?? "—"}</span></div>
-                  {r.renewal_date && (
-                    <div className="col-span-2 flex justify-between">
+                  <div className="flex justify-between gap-3"><span className="text-muted-foreground">Provider</span><span className="text-foreground text-right">{r.provider_name ?? "—"}</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-muted-foreground">Região</span><span className="text-foreground font-mono text-[10px] text-right">{r.region ?? "—"}</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-muted-foreground">IP</span><span className="text-foreground font-mono text-[10px] text-right">{r.ip_address ?? "—"}</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-muted-foreground">Uso</span><span className="text-primary font-mono text-right">{r.usage_summary ?? "—"}</span></div>
+                  {renewalDate && (
+                    <div className="col-span-2 flex justify-between gap-3">
                       <span className="text-muted-foreground">Renovação</span>
-                      <span className={`font-mono text-[10px] ${daysUntil !== null && daysUntil <= 7 ? "text-destructive font-medium" : "text-foreground"}`}>
-                        {r.renewal_date} {daysUntil !== null && `(${daysUntil}d)`}
+                      <span className={`font-mono text-[10px] text-right ${daysUntil !== null && daysUntil <= 7 ? "text-destructive font-medium" : "text-foreground"}`}>
+                        {renewalDate} {daysUntil !== null && `(${daysUntil}d)`}
                       </span>
                     </div>
                   )}
+                  {r.last_paid_at && (
+                    <div className="col-span-2 flex justify-between gap-3">
+                      <span className="text-muted-foreground">Últ. pagamento</span>
+                      <span className="text-foreground font-mono text-[10px] text-right">{new Date(r.last_paid_at).toISOString().slice(0, 10)}</span>
+                    </div>
+                  )}
                   {r.responsible && (
-                    <div className="col-span-2 flex justify-between">
-                      <span className="text-muted-foreground">Responsável</span><span className="text-foreground">{r.responsible}</span>
+                    <div className="col-span-2 flex justify-between gap-3">
+                      <span className="text-muted-foreground">Responsável</span><span className="text-foreground text-right">{r.responsible}</span>
                     </div>
                   )}
                 </div>
-                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border/40">
-                  <span className="text-[10px] text-muted-foreground line-clamp-1">{r.notes ?? r.account_name ?? ""}</span>
-                  <span className="font-mono text-[12px] text-foreground font-medium">R$ {Number(r.monthly_cost).toFixed(2)}<span className="text-muted-foreground text-[10px]">/mês</span></span>
+                <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border/40 gap-3">
+                  <span className="text-[10px] text-muted-foreground line-clamp-1">{r.linked_subscription_id ? "Sincronizado com assinatura" : (r.notes ?? r.account_name ?? "")}</span>
+                  <span className="font-mono text-[12px] text-foreground font-medium whitespace-nowrap">R$ {monthlyCost.toFixed(2)}<span className="text-muted-foreground text-[10px]">/mês</span></span>
                 </div>
               </div>
             );

@@ -5,6 +5,21 @@ import { toast } from "sonner";
 
 const db = supabase as any;
 
+interface InfrastructureSubscriptionLink {
+  id: string;
+  provider_id: string | null;
+  account_id: string | null;
+  provider: string;
+  account: string | null;
+  plan: string | null;
+  value: number;
+  cycle: string;
+  status: string;
+  payment_status: string;
+  last_paid_at: string | null;
+  next_renewal: string | null;
+}
+
 export interface InfrastructureAssetRow {
   id: string;
   user_id: string;
@@ -24,6 +39,11 @@ export interface InfrastructureAssetRow {
   updated_at: string;
   provider_name?: string | null;
   account_name?: string | null;
+  linked_subscription_id?: string | null;
+  payment_status?: string | null;
+  last_paid_at?: string | null;
+  effective_renewal_date?: string | null;
+  effective_monthly_cost?: number;
 }
 
 export interface InfrastructureAssetInput {
@@ -39,6 +59,85 @@ export interface InfrastructureAssetInput {
   notes: string;
   provider_name: string;
   account_name: string;
+}
+
+const normalize = (value?: string | null) =>
+  (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const monthlyValue = (value: number, cycle: string) => {
+  if (cycle === "anual") return value / 12;
+  if (cycle === "trimestral") return value / 3;
+  return value;
+};
+
+function getLinkScore(asset: InfrastructureAssetRow, subscription: InfrastructureSubscriptionLink) {
+  let score = 0;
+
+  if (asset.provider_id && subscription.provider_id && asset.provider_id === subscription.provider_id) score += 10;
+  if (asset.account_id && subscription.account_id && asset.account_id === subscription.account_id) score += 6;
+
+  const assetName = normalize(asset.name);
+  const providerName = normalize(asset.provider_name);
+  const accountName = normalize(asset.account_name);
+  const subProvider = normalize(subscription.provider);
+  const subPlan = normalize(subscription.plan);
+  const subAccount = normalize(subscription.account);
+
+  if (providerName && providerName === subProvider) score += 5;
+  if (accountName && accountName === subAccount) score += 3;
+  if (assetName && subPlan && assetName === subPlan) score += 5;
+  if (assetName && subProvider && assetName === subProvider) score += 4;
+  if (assetName && subPlan && (assetName.includes(subPlan) || subPlan.includes(assetName))) score += 3;
+  if (assetName && subProvider && (assetName.includes(subProvider) || subProvider.includes(assetName))) score += 2;
+
+  return score;
+}
+
+function linkInfrastructureWithSubscriptions(
+  assets: InfrastructureAssetRow[],
+  subscriptions: InfrastructureSubscriptionLink[],
+) {
+  const usedSubscriptionIds = new Set<string>();
+
+  return assets
+    .map((asset) => {
+      let bestMatch: InfrastructureSubscriptionLink | null = null;
+      let bestScore = 0;
+
+      for (const subscription of subscriptions) {
+        if (usedSubscriptionIds.has(subscription.id)) continue;
+        const score = getLinkScore(asset, subscription);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = subscription;
+        }
+      }
+
+      if (bestMatch && bestScore >= 4) {
+        usedSubscriptionIds.add(bestMatch.id);
+      } else {
+        bestMatch = null;
+      }
+
+      const effectiveMonthlyCost = bestMatch
+        ? monthlyValue(Number(bestMatch.value), bestMatch.cycle)
+        : Number(asset.monthly_cost);
+
+      return {
+        ...asset,
+        linked_subscription_id: bestMatch?.id ?? null,
+        payment_status: bestMatch?.payment_status ?? null,
+        last_paid_at: bestMatch?.last_paid_at ?? null,
+        effective_renewal_date: bestMatch?.next_renewal ?? asset.renewal_date,
+        effective_monthly_cost: effectiveMonthlyCost,
+      } satisfies InfrastructureAssetRow;
+    })
+    .sort((a, b) => Number(b.effective_monthly_cost ?? b.monthly_cost) - Number(a.effective_monthly_cost ?? a.monthly_cost));
 }
 
 async function ensureProvider(userId: string, name: string) {
@@ -95,22 +194,33 @@ export function useInfrastructure() {
     queryKey: ["infrastructure", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await db
-        .from("infrastructure_assets")
-        .select(`
-          *,
-          providers:provider_id(name),
-          accounts:account_id(name)
-        `)
-        .order("monthly_cost", { ascending: false });
+      const [{ data: assetsData, error: assetsError }, { data: subscriptionsData, error: subscriptionsError }] = await Promise.all([
+        db
+          .from("infrastructure_assets")
+          .select(`
+            *,
+            providers:provider_id(name),
+            accounts:account_id(name)
+          `),
+        db
+          .from("subscriptions")
+          .select("id, provider_id, account_id, provider, account, plan, value, cycle, status, payment_status, last_paid_at, next_renewal")
+          .in("status", ["ativo", "pendente"]),
+      ]);
 
-      if (error) throw error;
+      if (assetsError) throw assetsError;
+      if (subscriptionsError) throw subscriptionsError;
 
-      return (data ?? []).map((row: any) => ({
+      const assets = (assetsData ?? []).map((row: any) => ({
         ...row,
         provider_name: row.providers?.name ?? null,
         account_name: row.accounts?.name ?? null,
       })) as InfrastructureAssetRow[];
+
+      return linkInfrastructureWithSubscriptions(
+        assets,
+        (subscriptionsData ?? []) as InfrastructureSubscriptionLink[],
+      );
     },
   });
 
