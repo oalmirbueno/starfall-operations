@@ -36,12 +36,18 @@ function monthlyValue(s: SubscriptionRow): number {
   return v;
 }
 
+type SortKey = "renewal" | "value" | "provider" | "updated";
+type SortDir = "asc" | "desc";
+
 export default function Subscriptions() {
   const { subscriptions, isLoading, create, update, remove } = useSubscriptions();
   const { computeAlerts } = useAlerts();
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<SortKey>("renewal");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [formOpen, setFormOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editing, setEditing] = useState<SubscriptionRow | null>(null);
