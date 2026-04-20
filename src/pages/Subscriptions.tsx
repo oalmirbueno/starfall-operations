@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useSubscriptions, SubscriptionRow } from "@/hooks/useSubscriptions";
 import { useAlerts } from "@/hooks/useAlerts";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign, DollarSign } from "lucide-react";
+import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign, DollarSign, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,12 +36,18 @@ function monthlyValue(s: SubscriptionRow): number {
   return v;
 }
 
+type SortKey = "renewal" | "value" | "provider" | "updated";
+type SortDir = "asc" | "desc";
+
 export default function Subscriptions() {
   const { subscriptions, isLoading, create, update, remove } = useSubscriptions();
   const { computeAlerts } = useAlerts();
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<SortKey>("renewal");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [formOpen, setFormOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editing, setEditing] = useState<SubscriptionRow | null>(null);
@@ -67,7 +74,25 @@ export default function Subscriptions() {
     const ps = (s as any).payment_status ?? "pendente";
     const matchPayment = paymentFilter === "all" || ps === paymentFilter;
     return matchSearch && matchCategory && matchPayment;
+  }).sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortKey === "renewal") {
+      const da = a.next_renewal ? new Date(a.next_renewal).getTime() : Infinity;
+      const db = b.next_renewal ? new Date(b.next_renewal).getTime() : Infinity;
+      return (da - db) * dir;
+    }
+    if (sortKey === "value") return (monthlyValue(a) - monthlyValue(b)) * dir;
+    if (sortKey === "provider") return a.provider.localeCompare(b.provider) * dir;
+    return (new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()) * dir;
   });
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+  const sortIcon = (key: SortKey) => sortKey !== key
+    ? <ArrowUpDown className="inline h-3 w-3 opacity-40" />
+    : sortDir === "asc" ? <ArrowUp className="inline h-3 w-3 text-primary" /> : <ArrowDown className="inline h-3 w-3 text-primary" />;
 
   const openCreate = () => { setEditing(null); setForm(defaultForm); setFormOpen(true); };
   const openEdit = (s: SubscriptionRow) => {
@@ -97,6 +122,14 @@ export default function Subscriptions() {
     setTimeout(() => computeAlerts.mutate(), 500);
   };
 
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["subscriptions"] });
+    qc.invalidateQueries({ queryKey: ["infrastructure"] });
+    qc.invalidateQueries({ queryKey: ["cost-trend"] });
+    qc.invalidateQueries({ queryKey: ["cost-breakdown"] });
+    qc.invalidateQueries({ queryKey: ["alerts"] });
+  };
+
   const markPaid = async (s: SubscriptionRow) => {
     const nextDate = s.next_renewal ? getNextRenewal(s.next_renewal, s.cycle) : null;
     await update.mutateAsync({
@@ -106,16 +139,13 @@ export default function Subscriptions() {
       ...(nextDate ? { next_renewal: nextDate } : {}),
     } as any);
     toast.success(`${s.provider} pago — renovação avançada para ${nextDate ?? "próximo ciclo"}`);
-    // Recalculate alerts since renewal date changed
-    setTimeout(() => computeAlerts.mutate(), 500);
+    setTimeout(() => { computeAlerts.mutate(); invalidateAll(); }, 300);
   };
 
   const markUnpaid = async (s: SubscriptionRow) => {
-    await update.mutateAsync({
-      id: s.id,
-      payment_status: "pendente",
-    } as any);
+    await update.mutateAsync({ id: s.id, payment_status: "pendente" } as any);
     toast.info(`${s.provider} marcado como pendente`);
+    setTimeout(() => { computeAlerts.mutate(); invalidateAll(); }, 300);
   };
 
   if (isLoading) return (
@@ -205,11 +235,17 @@ export default function Subscriptions() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-secondary/30">
-                  <th className="text-left px-4 py-3 label-sm">Provider</th>
+                  <th className="text-left px-4 py-3 label-sm">
+                    <button onClick={() => toggleSort("provider")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Provider {sortIcon("provider")}</button>
+                  </th>
                   <th className="text-left px-4 py-3 label-sm">Plano</th>
-                  <th className="text-right px-4 py-3 label-sm">Valor</th>
+                  <th className="text-right px-4 py-3 label-sm">
+                    <button onClick={() => toggleSort("value")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Valor {sortIcon("value")}</button>
+                  </th>
                   <th className="text-left px-4 py-3 label-sm">Ciclo</th>
-                  <th className="text-left px-4 py-3 label-sm">Renovação</th>
+                  <th className="text-left px-4 py-3 label-sm">
+                    <button onClick={() => toggleSort("renewal")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Renovação {sortIcon("renewal")}</button>
+                  </th>
                   <th className="text-center px-4 py-3 label-sm">Pagamento</th>
                   <th className="text-left px-4 py-3 label-sm">Status</th>
                   <th className="text-right px-4 py-3 label-sm">Ações</th>
