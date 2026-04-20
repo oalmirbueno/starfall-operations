@@ -17,11 +17,27 @@ export default function Alerts() {
   const { alerts, isLoading, computeAlerts, resolve } = useAlerts();
   const { subscriptions } = useSubscriptions();
   const [filter, setFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<"urgency" | "days" | "date">("urgency");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
   const navigate = useNavigate();
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir(d => (d === 1 ? -1 : 1));
+    else { setSortKey(key); setSortDir(1); }
+  };
+
+  const SortIcon = ({ k }: { k: typeof sortKey }) =>
+    sortKey === k ? (sortDir === 1 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-40" />;
 
   const sorted = [...alerts]
     .filter(a => filter === "all" || a.urgency === filter)
-    .sort((a, b) => (urgencyOrder[a.urgency] ?? 9) - (urgencyOrder[b.urgency] ?? 9));
+    .sort((a, b) => {
+      const dir = sortDir;
+      if (sortKey === "urgency") return ((urgencyOrder[a.urgency] ?? 9) - (urgencyOrder[b.urgency] ?? 9)) * dir;
+      if (sortKey === "days") return ((a.days_until ?? 9999) - (b.days_until ?? 9999)) * dir;
+      if (sortKey === "date") return (a.alert_date.localeCompare(b.alert_date)) * dir;
+      return 0;
+    });
 
   const counts = {
     critico: alerts.filter(a => a.urgency === "critico").length,
