@@ -74,7 +74,25 @@ export default function Subscriptions() {
     const ps = (s as any).payment_status ?? "pendente";
     const matchPayment = paymentFilter === "all" || ps === paymentFilter;
     return matchSearch && matchCategory && matchPayment;
+  }).sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortKey === "renewal") {
+      const da = a.next_renewal ? new Date(a.next_renewal).getTime() : Infinity;
+      const db = b.next_renewal ? new Date(b.next_renewal).getTime() : Infinity;
+      return (da - db) * dir;
+    }
+    if (sortKey === "value") return (monthlyValue(a) - monthlyValue(b)) * dir;
+    if (sortKey === "provider") return a.provider.localeCompare(b.provider) * dir;
+    return (new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()) * dir;
   });
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+  const sortIcon = (key: SortKey) => sortKey !== key
+    ? <ArrowUpDown className="inline h-3 w-3 opacity-40" />
+    : sortDir === "asc" ? <ArrowUp className="inline h-3 w-3 text-primary" /> : <ArrowDown className="inline h-3 w-3 text-primary" />;
 
   const openCreate = () => { setEditing(null); setForm(defaultForm); setFormOpen(true); };
   const openEdit = (s: SubscriptionRow) => {
