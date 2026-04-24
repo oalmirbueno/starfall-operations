@@ -13,6 +13,7 @@ import Alerts from "./pages/Alerts";
 import Costs from "./pages/Costs";
 import Opportunities from "./pages/Opportunities";
 import Ideas from "./pages/Ideas";
+import UsefulLinks from "./pages/UsefulLinks";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
 import Login from "./pages/Login";
@@ -40,6 +41,7 @@ const App = () => (
                     <Route path="/custos" element={<Costs />} />
                     <Route path="/oportunidades" element={<Opportunities />} />
                     <Route path="/ideias" element={<Ideas />} />
+                    <Route path="/links" element={<UsefulLinks />} />
                     <Route path="/relatorios" element={<Reports />} />
                     <Route path="/configuracoes" element={<SettingsPage />} />
                     <Route path="*" element={<NotFound />} />
