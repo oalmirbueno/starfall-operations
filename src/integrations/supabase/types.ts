@@ -874,6 +874,48 @@ export type Database = {
           },
         ]
       }
+      useful_links: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          favorite: boolean
+          id: string
+          link_type: string
+          position: number
+          title: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          favorite?: boolean
+          id?: string
+          link_type?: string
+          position?: number
+          title: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          favorite?: boolean
+          id?: string
+          link_type?: string
+          position?: number
+          title?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
