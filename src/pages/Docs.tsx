@@ -154,7 +154,7 @@ export default function Docs() {
     (documents.data ?? []).filter(d => d.project_id === pid).length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in w-full max-w-none">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Documentação</h1>
