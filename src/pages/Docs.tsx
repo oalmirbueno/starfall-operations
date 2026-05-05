@@ -175,7 +175,7 @@ export default function Docs() {
 
       <div className="grid grid-cols-12 gap-4">
         {/* Sidebar */}
-        <aside className="col-span-12 md:col-span-3 bg-card border border-border rounded-lg p-3 space-y-3 max-h-[75vh] overflow-y-auto">
+        <aside className="col-span-12 lg:col-span-2 bg-card border border-border rounded-lg p-3 space-y-3 max-h-[78vh] overflow-y-auto">
           <button onClick={() => { setSelectedCompany("all"); setSelectedProject("all"); }}
             className={`w-full text-left px-2 py-1.5 rounded text-xs flex items-center justify-between ${selectedCompany === "all" ? "bg-primary/10 text-primary" : "hover:bg-secondary/50 text-foreground"}`}>
             <span className="flex items-center gap-2"><Folder className="h-3.5 w-3.5" /> Todas as empresas</span>
