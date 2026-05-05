@@ -179,45 +179,128 @@ export default function Credentials() {
     return arr;
   }, [credentials, search, filterClass, filter2FA, filterProvider, sortBy]);
 
-  // Group by "shelf": same root domain OR same normalized provider name
+  // Group by "shelf": brand-aware. Looks across provider, account, notes,
+  // recovery, login domain to find a single brand stem (e.g. "google",
+  // "aceleriq", "github") and groups everything that mentions it.
   const grouped = useMemo(() => {
-    const normProvider = (p: string) =>
-      p.toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/\b(inc|llc|ltd|ltda|sa|s\.a\.?|corp|co|gmbh|labs?|cloud|app|io|com|services?)\b/g, "")
-        .replace(/[^a-z0-9]/g, "")
-        .trim();
-    const rootDomain = (host: string) => {
-      const parts = host.split(".");
-      if (parts.length <= 2) return host;
-      // take last 2 labels (e.g. drive.google.com -> google.com)
-      return parts.slice(-2).join(".");
+    // Known brand aliases — first match wins, regardless of subdomain noise
+    const BRAND_ALIASES: Record<string, RegExp> = {
+      google: /\b(google|gmail|gsuite|workspace|youtube|gcp|firebase|googleads|adsense|analytics|gemini)\b/i,
+      microsoft: /\b(microsoft|outlook|hotmail|office365|onedrive|azure|msft|live\.com|teams)\b/i,
+      apple: /\b(apple|icloud|appleid|itunes)\b/i,
+      meta: /\b(meta|facebook|instagram|whatsapp|messenger|threads)\b/i,
+      amazon: /\b(amazon|aws|awscloud)\b/i,
+      github: /\b(github|gh\.io)\b/i,
+      gitlab: /\b(gitlab)\b/i,
+      cloudflare: /\b(cloudflare|cf-)\b/i,
+      digitalocean: /\b(digitalocean|do-cloud|droplets?)\b/i,
+      hostinger: /\b(hostinger)\b/i,
+      hetzner: /\b(hetzner)\b/i,
+      openai: /\b(openai|chatgpt)\b/i,
+      anthropic: /\b(anthropic|claude)\b/i,
+      stripe: /\b(stripe)\b/i,
+      paypal: /\b(paypal)\b/i,
+      mercadopago: /\b(mercadopago|mercado pago)\b/i,
+      supabase: /\b(supabase)\b/i,
+      vercel: /\b(vercel)\b/i,
+      netlify: /\b(netlify)\b/i,
+      notion: /\b(notion)\b/i,
+      figma: /\b(figma)\b/i,
+      slack: /\b(slack)\b/i,
+      discord: /\b(discord)\b/i,
     };
-    const shelfKey = (c: Credential) => {
-      const url = deriveProviderUrl(c);
-      const dom = url ? getDomain(url) : null;
-      const root = dom ? rootDomain(dom) : null;
-      const norm = normProvider(c.provider);
-      // prefer root domain stem if present, else normalized provider
-      const stem = root ? root.split(".")[0] : "";
-      return (stem && stem.length >= 2 ? stem : norm) || c.provider.toLowerCase();
+
+    const STOP = new Set([
+      "www","app","apps","mail","email","login","auth","accounts","account","admin","dashboard","portal",
+      "my","secure","panel","cpanel","webmail","manage","console","com","net","org","io","co","online",
+      "site","web","cloud","store","shop","host","hosting","tech","dev","ai","sa","br","pt","us","uk",
+      "inc","llc","ltd","ltda","corp","gmbh","labs","services","service","support","help","www2",
+      "page","pages","drive","docs","mail","go","get","new","old","beta","staging","test",
+    ]);
+
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const tokensFromHost = (host: string): string[] => {
+      const parts = host.split(".").map(normalize);
+      // remove TLD-like and stop tokens
+      return parts.filter(p => p && !STOP.has(p) && !/^\d+$/.test(p));
     };
-    const shelfLabel = (c: Credential) => {
-      const url = deriveProviderUrl(c);
-      const dom = url ? getDomain(url) : null;
-      if (dom) return rootDomain(dom);
-      return c.provider;
+
+    const tokensFromText = (text: string): string[] =>
+      normalize(text).split(/[^a-z0-9]+/).filter(t => t && t.length >= 3 && !STOP.has(t));
+
+    const findBrandStem = (c: Credential): { key: string; label: string } => {
+      const haystackParts: string[] = [];
+      const hostTokens: string[] = [];
+
+      const collectFromText = (txt: string | null) => {
+        if (!txt) return;
+        haystackParts.push(txt);
+        const matches = txt.match(URL_REGEX) ?? [];
+        for (const m of matches) {
+          const u = normalizeUrl(m);
+          const host = u ? getDomain(u) : null;
+          if (host) hostTokens.push(...tokensFromHost(host));
+        }
+      };
+
+      collectFromText(c.provider);
+      collectFromText(c.account);
+      collectFromText(c.notes);
+      collectFromText(c.recovery_info);
+      // login email domain
+      const emailDomain = c.login?.match(/@([^\s]+)/)?.[1];
+      if (emailDomain) hostTokens.push(...tokensFromHost(emailDomain));
+
+      const haystack = haystackParts.join(" ");
+
+      // 1) known brand alias wins
+      for (const [stem, re] of Object.entries(BRAND_ALIASES)) {
+        if (re.test(haystack) || hostTokens.some(t => re.test(t))) {
+          return { key: stem, label: stem.charAt(0).toUpperCase() + stem.slice(1) };
+        }
+      }
+
+      // 2) token that appears both in host AND in provider/account text
+      const textTokens = new Set([
+        ...tokensFromText(c.provider ?? ""),
+        ...tokensFromText(c.account ?? ""),
+      ]);
+      const overlap = hostTokens.find(t => textTokens.has(t));
+      if (overlap) return { key: overlap, label: overlap };
+
+      // 3) longest meaningful host token (skip generic stuff)
+      if (hostTokens.length) {
+        const best = [...hostTokens].sort((a, b) => b.length - a.length)[0];
+        return { key: best, label: best };
+      }
+
+      // 4) provider-name fallback (cleaned)
+      const provTokens = tokensFromText(c.provider ?? "");
+      if (provTokens.length) {
+        const best = provTokens.sort((a, b) => b.length - a.length)[0];
+        return { key: best, label: best };
+      }
+      const k = (c.provider ?? "outros").toLowerCase().trim() || "outros";
+      return { key: k, label: c.provider ?? "Outros" };
     };
 
     type Shelf = { key: string; label: string; favicon: string | null; items: Credential[] };
     const groups: Record<string, Record<string, Shelf>> = { secret: {}, operational: {} };
     for (const c of filtered) {
       const cls = c.classification === "secret" ? "secret" : "operational";
-      const key = shelfKey(c);
-      const label = shelfLabel(c);
+      const { key, label } = findBrandStem(c);
       if (!groups[cls][key]) {
-        const url = deriveProviderUrl(c);
-        groups[cls][key] = { key, label, favicon: url ? faviconFor(url) : null, items: [] };
+        // favicon: prefer key.com guess, fallback to derived URL
+        const guessUrl = /^[a-z0-9-]+$/.test(key) ? `https://${key}.com` : null;
+        const url = guessUrl ?? deriveProviderUrl(c);
+        groups[cls][key] = {
+          key,
+          label: label.charAt(0).toUpperCase() + label.slice(1),
+          favicon: url ? faviconFor(url) : null,
+          items: [],
+        };
       }
       groups[cls][key].items.push(c);
     }
