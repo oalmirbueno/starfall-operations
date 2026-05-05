@@ -150,8 +150,8 @@ export default function Docs() {
       if (favoritesOnly && !d.favorite) return false;
       if (tagFilter.length && !tagFilter.every(t => (d.tags ?? []).includes(t))) return false;
 
-      const company = companyById(d.company_id);
-      const project = projectById(d.project_id);
+      const company = (companies.data ?? []).find(c => c.id === d.company_id) ?? null;
+      const project = (projects.data ?? []).find(p => p.id === d.project_id) ?? null;
 
       // operadores
       for (const { key, val } of ops) {
