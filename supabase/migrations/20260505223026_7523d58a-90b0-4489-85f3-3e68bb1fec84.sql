@@ -1,0 +1,2 @@
+ALTER TABLE public.doc_projects ADD COLUMN IF NOT EXISTS parent_id uuid REFERENCES public.doc_projects(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_doc_projects_parent ON public.doc_projects(parent_id);
