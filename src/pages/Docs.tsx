@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, FolderKanban, FileText, Link2, Paperclip, Plus, Search, Star,
-  Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, BookOpen, Globe, Eye, X,
-  History, RotateCcw, User
+  Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, FolderOpen, BookOpen, Globe, Eye, X,
+  History, RotateCcw, User, Tag, Layers
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 function getDomain(url: string | null): string | null {
@@ -171,7 +172,8 @@ export default function Docs() {
       if (selectedProject === "none" && d.project_id !== null) return false;
       else if (selectedProject !== "all" && selectedProject !== "none" && d.project_id !== selectedProject) return false;
       if (typeFilter !== "all" && d.doc_type !== typeFilter) return false;
-      if (categoryFilter !== "all" && (d.category ?? "") !== categoryFilter) return false;
+      if (categoryFilter === "__none__" && d.category) return false;
+      if (categoryFilter !== "all" && categoryFilter !== "__none__" && (d.category ?? "") !== categoryFilter) return false;
       if (favoritesOnly && !d.favorite) return false;
       if (tagFilter.length && !tagFilter.every(t => (d.tags ?? []).includes(t))) return false;
 
@@ -298,71 +300,126 @@ export default function Docs() {
 
       <div className="grid grid-cols-12 gap-4">
         {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-2 bg-card border border-border rounded-lg p-3 space-y-3 max-h-[78vh] overflow-y-auto">
-          <button onClick={() => { setSelectedCompany("all"); setSelectedProject("all"); }}
-            className={`w-full text-left px-2 py-1.5 rounded text-xs flex items-center justify-between ${selectedCompany === "all" ? "bg-primary/10 text-primary" : "hover:bg-secondary/50 text-foreground"}`}>
-            <span className="flex items-center gap-2"><Folder className="h-3.5 w-3.5" /> Todas as empresas</span>
-            <span className="text-[10px] text-muted-foreground">{documents.data?.length ?? 0}</span>
-          </button>
+        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 2xl:col-span-2 bg-card border border-border rounded-lg p-3 space-y-3 max-h-[78vh] overflow-y-auto">
+          <Tabs defaultValue="categories" className="w-full">
+            <TabsList className="grid grid-cols-2 w-full h-8 bg-secondary/50">
+              <TabsTrigger value="categories" className="text-[11px] gap-1"><Layers className="h-3 w-3" /> Categorias</TabsTrigger>
+              <TabsTrigger value="projects" className="text-[11px] gap-1"><FolderKanban className="h-3 w-3" /> Projetos</TabsTrigger>
+            </TabsList>
 
-          <div className="space-y-1">
-            {(companies.data ?? []).map(c => {
-              const isOpen = selectedCompany === c.id;
-              const compProjects = projectsForCompany(c.id);
-              return (
-                <div key={c.id}>
-                  <div className={`group flex items-center justify-between px-2 py-1.5 rounded cursor-pointer ${isOpen ? "bg-primary/10" : "hover:bg-secondary/50"}`}
-                       onClick={() => { setSelectedCompany(c.id); setSelectedProject("all"); }}>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <ChevronRight className={`h-3 w-3 transition-transform ${isOpen ? "rotate-90" : ""}`} />
-                      {c.logo_url ? <img src={c.logo_url} alt="" className="h-4 w-4 rounded-sm" /> :
-                        c.website ? <img src={favicon(c.website) ?? ""} alt="" className="h-4 w-4 rounded-sm" onError={(e) => (e.currentTarget.style.display = "none")} /> :
-                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />}
-                      <span className="text-xs font-medium truncate text-foreground">{c.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground">{docCountByCompany(c.id)}</span>
-                      <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); if (confirm(`Remover "${c.name}" e todos os projetos/documentos vinculados?`)) removeCompany.mutate(c.id); }}>
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                  {isOpen && (
-                    <div className="ml-4 mt-1 space-y-0.5 border-l border-border/50 pl-2">
-                      <button onClick={() => setSelectedProject("all")}
-                        className={`w-full text-left px-2 py-1 rounded text-[11px] flex items-center justify-between ${selectedProject === "all" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                        <span>Todos</span>
-                      </button>
-                      {compProjects.map(p => (
-                        <div key={p.id} className="group flex items-center justify-between gap-1">
-                          <button onClick={() => setSelectedProject(p.id)}
-                            className={`flex-1 text-left px-2 py-1 rounded text-[11px] flex items-center gap-1.5 ${selectedProject === p.id ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-secondary/50"}`}>
-                            <FolderKanban className="h-3 w-3" />
-                            <span className="truncate">{p.name}</span>
-                            <span className="ml-auto text-[10px] text-muted-foreground">{docCountByProject(p.id)}</span>
-                          </button>
-                          <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-1" onClick={() => { if (confirm(`Remover projeto "${p.name}" e seus documentos?`)) removeProject.mutate(p.id); }}>
+            {/* CATEGORIES TAB */}
+            <TabsContent value="categories" className="mt-3 space-y-1">
+              <button
+                onClick={() => { setCategoryFilter("all"); setSelectedCompany("all"); setSelectedProject("all"); }}
+                className={`w-full text-left px-2 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors ${categoryFilter === "all" ? "bg-primary/10 text-primary" : "hover:bg-secondary/50 text-foreground"}`}
+              >
+                <span className="flex items-center gap-2 min-w-0"><FolderOpen className="h-3.5 w-3.5 shrink-0" /> Todas</span>
+                <span className="text-[10px] text-muted-foreground shrink-0">{documents.data?.length ?? 0}</span>
+              </button>
+              {allCategories.length === 0 && (
+                <p className="text-[11px] text-muted-foreground italic px-2 py-3 text-center">Nenhuma categoria. Crie um documento e atribua uma categoria para vê-la aqui como uma pasta.</p>
+              )}
+              {allCategories.map(cat => {
+                const count = (documents.data ?? []).filter(d => (d.category ?? "") === cat).length;
+                const active = categoryFilter === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setCategoryFilter(active ? "all" : cat)}
+                    className={`w-full text-left px-2 py-1.5 rounded-md text-xs flex items-center justify-between gap-2 transition-colors group ${active ? "bg-primary/10 text-primary border border-primary/30" : "hover:bg-secondary/50 text-foreground border border-transparent"}`}
+                    title={cat}
+                  >
+                    <span className="flex items-center gap-2 min-w-0 flex-1">
+                      {active ? <FolderOpen className="h-3.5 w-3.5 shrink-0 text-primary" /> : <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-primary" />}
+                      <span className="text-xs break-words leading-tight">{cat}</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground bg-secondary/60 rounded-full px-1.5 py-0.5 shrink-0">{count}</span>
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setCategoryFilter("__none__")}
+                className={`w-full text-left px-2 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors ${categoryFilter === "__none__" ? "bg-muted text-foreground" : "hover:bg-secondary/30 text-muted-foreground"}`}
+              >
+                <span className="flex items-center gap-2 italic"><Folder className="h-3.5 w-3.5" /> Sem categoria</span>
+                <span className="text-[10px]">{(documents.data ?? []).filter(d => !d.category).length}</span>
+              </button>
+            </TabsContent>
+
+            {/* PROJECTS TAB */}
+            <TabsContent value="projects" className="mt-3 space-y-2">
+              <button onClick={() => { setSelectedCompany("all"); setSelectedProject("all"); }}
+                className={`w-full text-left px-2 py-1.5 rounded-md text-xs flex items-center justify-between ${selectedCompany === "all" ? "bg-primary/10 text-primary" : "hover:bg-secondary/50 text-foreground"}`}>
+                <span className="flex items-center gap-2"><Building2 className="h-3.5 w-3.5" /> Todas as empresas</span>
+                <span className="text-[10px] text-muted-foreground">{documents.data?.length ?? 0}</span>
+              </button>
+
+              <div className="space-y-1">
+                {(companies.data ?? []).map(c => {
+                  const isOpen = selectedCompany === c.id;
+                  const compProjects = projectsForCompany(c.id);
+                  return (
+                    <div key={c.id} className={`rounded-md ${isOpen ? "bg-secondary/30" : ""}`}>
+                      <div className={`group flex items-start justify-between gap-1 px-2 py-1.5 rounded-md cursor-pointer ${isOpen ? "bg-primary/10" : "hover:bg-secondary/50"}`}
+                           onClick={() => { setSelectedCompany(isOpen ? "all" : c.id); setSelectedProject("all"); }}>
+                        <div className="flex items-start gap-2 min-w-0 flex-1">
+                          <ChevronRight className={`h-3 w-3 mt-0.5 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`} />
+                          {c.logo_url ? <img src={c.logo_url} alt="" className="h-4 w-4 rounded-sm shrink-0 mt-0.5" /> :
+                            c.website ? <img src={favicon(c.website) ?? ""} alt="" className="h-4 w-4 rounded-sm shrink-0 mt-0.5" onError={(e) => (e.currentTarget.style.display = "none")} /> :
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />}
+                          <span className="text-xs font-medium text-foreground break-words leading-tight" title={c.name}>{c.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-[10px] text-muted-foreground">{docCountByCompany(c.id)}</span>
+                          <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); if (confirm(`Remover "${c.name}" e todos os projetos/documentos vinculados?`)) removeCompany.mutate(c.id); }}>
                             <Trash2 className="h-3 w-3" />
                           </button>
                         </div>
-                      ))}
-                      <button onClick={() => setSelectedProject("none")}
-                        className={`w-full text-left px-2 py-1 rounded text-[11px] flex items-center justify-between ${selectedProject === "none" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                        <span className="italic">Sem projeto</span>
-                      </button>
+                      </div>
+                      {isOpen && (
+                        <div className="ml-3 mt-1 mb-1 space-y-0.5 border-l border-border/50 pl-2">
+                          <button onClick={() => setSelectedProject("all")}
+                            className={`w-full text-left px-2 py-1 rounded text-[11px] ${selectedProject === "all" ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"}`}>
+                            Todos projetos
+                          </button>
+                          {compProjects.length === 0 && (
+                            <p className="text-[10px] text-muted-foreground/70 italic px-2 py-1">Sem projetos</p>
+                          )}
+                          {compProjects.map(p => (
+                            <div key={p.id} className="group flex items-start justify-between gap-1">
+                              <button onClick={() => setSelectedProject(p.id)}
+                                className={`flex-1 min-w-0 text-left px-2 py-1 rounded text-[11px] flex items-start gap-1.5 ${selectedProject === p.id ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-secondary/50"}`}
+                                title={p.name}
+                              >
+                                <FolderKanban className="h-3 w-3 mt-0.5 shrink-0" />
+                                <span className="break-words leading-tight flex-1">{p.name}</span>
+                                <span className="text-[10px] text-muted-foreground shrink-0">{docCountByProject(p.id)}</span>
+                              </button>
+                              <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-1 shrink-0" onClick={() => { if (confirm(`Remover projeto "${p.name}" e seus documentos?`)) removeProject.mutate(p.id); }}>
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                          <button onClick={() => setSelectedProject("none")}
+                            className={`w-full text-left px-2 py-1 rounded text-[11px] italic ${selectedProject === "none" ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"}`}>
+                            Sem projeto
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-            {!companies.data?.length && (
-              <p className="text-[11px] text-muted-foreground italic px-2 py-3 text-center">Crie sua primeira empresa</p>
-            )}
-          </div>
+                  );
+                })}
+                {!companies.data?.length && (
+                  <p className="text-[11px] text-muted-foreground italic px-2 py-3 text-center">Crie sua primeira empresa</p>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </aside>
 
+
         {/* Main */}
-        <main className="col-span-12 lg:col-span-10 space-y-4">
+        <main className="col-span-12 lg:col-span-9 xl:col-span-9 2xl:col-span-10 space-y-4">
           <div className="bg-card border border-border rounded-lg p-3 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative flex-1 min-w-[220px]">
@@ -486,7 +543,7 @@ export default function Docs() {
                     <div className="flex items-start justify-between gap-2">
                       <button onClick={() => openPreview(d)} className="flex items-center gap-2 min-w-0 text-left flex-1">
                         {fav ? <img src={fav} alt="" className="h-4 w-4 rounded-sm" onError={(e) => (e.currentTarget.style.display = "none")} /> : <TypeIcon className="h-4 w-4 text-primary shrink-0" />}
-                        <span className="text-sm font-medium text-foreground truncate hover:text-primary transition-colors">{d.title}</span>
+                        <span className="text-sm font-medium text-foreground hover:text-primary transition-colors line-clamp-2 leading-snug" title={d.title}>{d.title}</span>
                       </button>
                       <div className="flex items-center gap-1 shrink-0">
                         <button onClick={() => openPreview(d)} className="p-1 text-muted-foreground hover:text-primary" title="Visualizar"><Eye className="h-3 w-3" /></button>
