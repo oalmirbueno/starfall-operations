@@ -449,6 +449,72 @@ export type Database = {
           },
         ]
       }
+      document_versions: {
+        Row: {
+          author_name: string | null
+          category: string | null
+          change_note: string | null
+          company_id: string | null
+          content: string | null
+          created_at: string
+          doc_type: string
+          document_id: string
+          file_mime: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          project_id: string | null
+          tags: string[] | null
+          title: string
+          url: string | null
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          author_name?: string | null
+          category?: string | null
+          change_note?: string | null
+          company_id?: string | null
+          content?: string | null
+          created_at?: string
+          doc_type: string
+          document_id: string
+          file_mime?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          project_id?: string | null
+          tags?: string[] | null
+          title: string
+          url?: string | null
+          user_id: string
+          version_number?: number
+        }
+        Update: {
+          author_name?: string | null
+          category?: string | null
+          change_note?: string | null
+          company_id?: string | null
+          content?: string | null
+          created_at?: string
+          doc_type?: string
+          document_id?: string
+          file_mime?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          project_id?: string | null
+          tags?: string[] | null
+          title?: string
+          url?: string | null
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           category: string | null
