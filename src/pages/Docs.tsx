@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DocsSidebar } from "@/components/DocsSidebar";
+import { DocThumbnail } from "@/components/DocThumbnail";
 import { toast } from "sonner";
 
 function getDomain(url: string | null): string | null {
