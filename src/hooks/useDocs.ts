@@ -120,7 +120,7 @@ export function useDocs() {
     mutationFn: async (input: Partial<DocProject> & { company_id: string; name: string }) => {
       if (!userId) throw new Error("auth");
       const { data, error } = await supabase.from("doc_projects")
-        .insert({ name: input.name, description: input.description ?? null, status: input.status ?? "ativo", color: input.color ?? null, company_id: input.company_id, user_id: userId })
+        .insert({ name: input.name, description: input.description ?? null, status: input.status ?? "ativo", color: input.color ?? null, company_id: input.company_id, parent_id: input.parent_id ?? null, user_id: userId })
         .select().single();
       if (error) throw error; return data as DocProject;
     },
