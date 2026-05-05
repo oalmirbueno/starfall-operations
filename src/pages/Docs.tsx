@@ -61,6 +61,21 @@ export default function Docs() {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
+  // Preview state
+  const [previewDoc, setPreviewDoc] = useState<DocItem | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const openPreview = async (d: DocItem) => {
+    setPreviewDoc(d); setPreviewUrl(null);
+    if (d.doc_type === "file" && d.file_path) {
+      setPreviewLoading(true);
+      const url = await getFileUrl(d.file_path);
+      setPreviewUrl(url); setPreviewLoading(false);
+    }
+  };
+  const closePreview = () => { setPreviewDoc(null); setPreviewUrl(null); };
+
   const resetDoc = () => {
     setEditingDoc(null); setDTitle(""); setDType("text");
     setDCompany(selectedCompany !== "all" ? selectedCompany : "");
