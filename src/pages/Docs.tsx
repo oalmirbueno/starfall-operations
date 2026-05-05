@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, FolderKanban, FileText, Link2, Paperclip, Plus, Search, Star,
   Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, FolderOpen, BookOpen, Globe, Eye, X,
-  History, RotateCcw, User, Tag, Layers
+  History, RotateCcw, User, Tag, Layers, Maximize2, Minimize2
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DocsSidebar } from "@/components/DocsSidebar";
@@ -90,6 +90,7 @@ export default function Docs() {
   const [previewDoc, setPreviewDoc] = useState<DocItem | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"dock" | "modal">("dock");
 
   // History state
   const [showHistory, setShowHistory] = useState(false);
@@ -370,7 +371,11 @@ export default function Docs() {
 
 
         {/* Main */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 2xl:col-span-10 space-y-4">
+        <main className={`col-span-12 space-y-4 ${
+          previewDoc && previewMode === "dock"
+            ? "lg:col-span-5 xl:col-span-5 2xl:col-span-5"
+            : "lg:col-span-9 xl:col-span-9 2xl:col-span-10"
+        }`}>
           <div className="bg-card border border-border rounded-lg p-3 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative flex-1 min-w-[220px]">
@@ -786,171 +791,160 @@ export default function Docs() {
         </DialogContent>
       </Dialog>
 
-      {/* Preview dialog */}
-      <Dialog open={!!previewDoc} onOpenChange={(o) => { if (!o) closePreview(); }}>
-        <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-hidden flex flex-col p-0">
-          {previewDoc && (() => {
-            const d = previewDoc;
-            const company = companyById(d.company_id);
-            const project = projectById(d.project_id);
-            const TypeIcon = d.doc_type === "link" ? Link2 : d.doc_type === "file" ? Paperclip : FileText;
-            const isImage = d.file_mime?.startsWith("image/");
-            const isPdf = d.file_mime === "application/pdf" || d.file_name?.toLowerCase().endsWith(".pdf");
-            const isVideo = d.file_mime?.startsWith("video/");
-            const isAudio = d.file_mime?.startsWith("audio/");
-            const isText = d.file_mime?.startsWith("text/") || /\.(txt|md|csv|json|log|yaml|yml|xml|ini)$/i.test(d.file_name ?? "");
+      {/* Preview body (used in dock + modal) */}
+      {(() => {
+        if (!previewDoc) return null;
+        const d = previewDoc;
+        const company = companyById(d.company_id);
+        const project = projectById(d.project_id);
+        const TypeIcon = d.doc_type === "link" ? Link2 : d.doc_type === "file" ? Paperclip : FileText;
+        const isImage = d.file_mime?.startsWith("image/");
+        const isPdf = d.file_mime === "application/pdf" || d.file_name?.toLowerCase().endsWith(".pdf");
+        const isVideo = d.file_mime?.startsWith("video/");
+        const isAudio = d.file_mime?.startsWith("audio/");
+        const isText = d.file_mime?.startsWith("text/") || /\.(txt|md|csv|json|log|yaml|yml|xml|ini)$/i.test(d.file_name ?? "");
 
-            return (
-              <>
-                <div className="flex items-start justify-between gap-3 px-6 pt-5 pb-3 border-b border-border">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <TypeIcon className="h-4 w-4 text-primary shrink-0" />
-                      <h2 className="text-base font-semibold text-foreground truncate">{d.title}</h2>
-                      {d.favorite && <Star className="h-3.5 w-3.5 text-warning fill-current" />}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-[11px] text-muted-foreground">
-                      {company && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><Building2 className="h-2.5 w-2.5" />{company.name}</span>}
-                      {project && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><FolderKanban className="h-2.5 w-2.5" />{project.name}</span>}
-                      {d.category && <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">{d.category}</span>}
-                      {(d.tags ?? []).map(t => <span key={t} className="bg-secondary/50 px-1.5 py-0.5 rounded">#{t}</span>)}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {previewUrl && (
-                      <a href={previewUrl} target="_blank" rel="noreferrer" className="p-1.5 text-muted-foreground hover:text-primary" title="Abrir em nova aba"><ExternalLink className="h-4 w-4" /></a>
-                    )}
-                    {previewUrl && (
-                      <a href={previewUrl} download={d.file_name ?? undefined} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-4 w-4" /></a>
-                    )}
-                    <button
-                      onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadVersions(d.id); }}
-                      className={`p-1.5 ${showHistory ? "text-primary bg-primary/10 rounded" : "text-muted-foreground hover:text-primary"}`}
-                      title="Histórico de versões"
-                    ><History className="h-4 w-4" /></button>
-                    <button onClick={() => { closePreview(); openEditDoc(d); }} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-4 w-4" /></button>
-                    <button onClick={closePreview} className="p-1.5 text-muted-foreground hover:text-foreground" title="Fechar"><X className="h-4 w-4" /></button>
-                  </div>
-                </div>
+        const Header = (
+          <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 border-b border-border">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <TypeIcon className="h-4 w-4 text-primary shrink-0" />
+                <h2 className="text-sm font-semibold text-foreground truncate">{d.title}</h2>
+                {d.favorite && <Star className="h-3.5 w-3.5 text-warning fill-current" />}
+              </div>
+              <div className="flex flex-wrap items-center gap-1 mt-1.5 text-[10px] text-muted-foreground">
+                {company && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><Building2 className="h-2.5 w-2.5" />{company.name}</span>}
+                {project && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><FolderKanban className="h-2.5 w-2.5" />{project.name}</span>}
+                {d.category && <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">{d.category}</span>}
+                {(d.tags ?? []).slice(0, 4).map(t => <span key={t} className="bg-secondary/50 px-1.5 py-0.5 rounded">#{t}</span>)}
+              </div>
+            </div>
+            <div className="flex items-center gap-0.5 shrink-0">
+              {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer" className="p-1.5 text-muted-foreground hover:text-primary" title="Abrir em nova aba"><ExternalLink className="h-3.5 w-3.5" /></a>}
+              {previewUrl && <a href={previewUrl} download={d.file_name ?? undefined} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3.5 w-3.5" /></a>}
+              <button onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadVersions(d.id); }}
+                className={`p-1.5 ${showHistory ? "text-primary bg-primary/10 rounded" : "text-muted-foreground hover:text-primary"}`} title="Histórico"><History className="h-3.5 w-3.5" /></button>
+              <button onClick={() => openEditDoc(d)} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-3.5 w-3.5" /></button>
+              <button onClick={() => setPreviewMode(previewMode === "dock" ? "modal" : "dock")}
+                className="p-1.5 text-muted-foreground hover:text-primary" title={previewMode === "dock" ? "Expandir" : "Reduzir"}>
+                {previewMode === "dock" ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+              </button>
+              <button onClick={closePreview} className="p-1.5 text-muted-foreground hover:text-foreground" title="Fechar"><X className="h-3.5 w-3.5" /></button>
+            </div>
+          </div>
+        );
 
-                <div className="flex-1 flex overflow-hidden">
-                  <div className="flex-1 overflow-auto p-6 bg-secondary/10">
-                  {/* TEXT */}
-                  {d.doc_type === "text" && (
-                    d.content
-                      ? <article className="prose prose-invert prose-sm max-w-none whitespace-pre-wrap text-foreground leading-relaxed">{d.content}</article>
-                      : <p className="text-sm text-muted-foreground italic">Sem conteúdo.</p>
-                  )}
+        const Body = (
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 overflow-auto p-4 bg-secondary/10">
+              {d.doc_type === "text" && (
+                d.content
+                  ? <article className="prose prose-invert prose-sm max-w-none whitespace-pre-wrap text-foreground leading-relaxed">{d.content}</article>
+                  : <p className="text-sm text-muted-foreground italic">Sem conteúdo.</p>
+              )}
 
-                  {/* LINK */}
-                  {d.doc_type === "link" && d.url && (() => {
-                    const href = d.url.startsWith("http") ? d.url : `https://${d.url}`;
-                    const dom = getDomain(d.url);
-                    return (
-                      <div className="space-y-3">
-                        <a href={href} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-4 bg-card border border-border rounded-lg hover:border-primary transition-colors">
-                          {favicon(d.url) ? <img src={favicon(d.url) ?? ""} alt="" className="h-8 w-8 rounded" /> : <Globe className="h-8 w-8 text-primary" />}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{dom ?? href}</p>
-                            <p className="text-xs text-muted-foreground truncate">{href}</p>
-                          </div>
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        </a>
-                        {d.content && <article className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{d.content}</article>}
+              {d.doc_type === "link" && d.url && (() => {
+                const href = d.url.startsWith("http") ? d.url : `https://${d.url}`;
+                const dom = getDomain(d.url);
+                return (
+                  <div className="space-y-3">
+                    <a href={href} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg hover:border-primary transition-colors">
+                      {favicon(d.url) ? <img src={favicon(d.url) ?? ""} alt="" className="h-8 w-8 rounded" /> : <Globe className="h-8 w-8 text-primary" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{dom ?? href}</p>
+                        <p className="text-xs text-muted-foreground truncate">{href}</p>
                       </div>
-                    );
-                  })()}
+                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                    </a>
+                    {d.content && <article className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{d.content}</article>}
+                  </div>
+                );
+              })()}
 
-                  {/* FILE */}
-                  {d.doc_type === "file" && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="truncate">{d.file_name} · {fmtSize(d.file_size)} · {d.file_mime || "binário"}</span>
-                      </div>
-                      {previewLoading && <div className="flex items-center justify-center h-64"><Skeleton className="h-full w-full" /></div>}
-                      {!previewLoading && !previewUrl && <p className="text-sm text-destructive">Não foi possível carregar o arquivo.</p>}
-                      {previewUrl && isImage && (
-                        <div className="flex items-center justify-center bg-card border border-border rounded-lg p-2">
-                          <img src={previewUrl} alt={d.title} className="max-h-[70vh] object-contain" />
-                        </div>
-                      )}
-                      {previewUrl && isPdf && (
-                        <iframe src={previewUrl} title={d.title} className="w-full h-[75vh] bg-white rounded-lg border border-border" />
-                      )}
-                      {previewUrl && isVideo && (
-                        <video src={previewUrl} controls className="w-full max-h-[75vh] rounded-lg bg-black" />
-                      )}
-                      {previewUrl && isAudio && (
-                        <audio src={previewUrl} controls className="w-full" />
-                      )}
-                      {previewUrl && isText && (
-                        <iframe src={previewUrl} title={d.title} className="w-full h-[70vh] bg-card rounded-lg border border-border" />
-                      )}
-                      {previewUrl && !isImage && !isPdf && !isVideo && !isAudio && !isText && (
-                        <div className="flex flex-col items-center justify-center h-64 bg-card border border-border rounded-lg gap-3">
-                          <Paperclip className="h-10 w-10 text-muted-foreground/40" />
-                          <p className="text-sm text-muted-foreground">Pré-visualização não disponível para este formato</p>
-                          <a href={previewUrl} download={d.file_name ?? undefined} className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Baixar arquivo</a>
-                        </div>
-                      )}
-                      {d.content && (
-                        <div className="pt-3 border-t border-border/50">
-                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Notas</p>
-                          <article className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{d.content}</article>
-                        </div>
-                      )}
+              {d.doc_type === "file" && (
+                <div className="space-y-3">
+                  <div className="text-[11px] text-muted-foreground truncate">{d.file_name} · {fmtSize(d.file_size)} · {d.file_mime || "binário"}</div>
+                  {previewLoading && <Skeleton className="h-64 w-full" />}
+                  {!previewLoading && !previewUrl && <p className="text-sm text-destructive">Não foi possível carregar o arquivo.</p>}
+                  {previewUrl && isImage && (
+                    <div className="flex items-center justify-center bg-card border border-border rounded-lg p-2">
+                      <img src={previewUrl} alt={d.title} className="max-h-[70vh] object-contain" />
                     </div>
                   )}
-                  </div>
-
-                  {showHistory && (
-                    <aside className="w-80 shrink-0 border-l border-border bg-card overflow-auto">
-                      <div className="p-3 border-b border-border flex items-center gap-2">
-                        <History className="h-3.5 w-3.5 text-primary" />
-                        <span className="text-xs font-medium text-foreground">Histórico de versões</span>
-                        <span className="ml-auto text-[10px] text-muted-foreground">{versions.length}</span>
-                      </div>
-                      <div className="p-2 space-y-1.5">
-                        {versionsLoading && <p className="text-[11px] text-muted-foreground italic px-2 py-3">Carregando…</p>}
-                        {!versionsLoading && versions.length === 0 && (
-                          <p className="text-[11px] text-muted-foreground italic px-2 py-3 text-center">Sem versões anteriores. Edite o documento para começar a registrar o histórico.</p>
-                        )}
-                        {versions.map(v => (
-                          <div key={v.id} className="border border-border rounded-md p-2 bg-secondary/30 hover:border-primary/40 transition-colors">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] font-mono text-primary">v{v.version_number}</span>
-                              <button
-                                onClick={() => handleRestore(v)}
-                                className="text-[10px] inline-flex items-center gap-1 text-muted-foreground hover:text-primary"
-                                title="Restaurar esta versão"
-                              ><RotateCcw className="h-2.5 w-2.5" /> Restaurar</button>
-                            </div>
-                            <p className="text-[11px] text-foreground truncate mt-0.5" title={v.title}>{v.title}</p>
-                            <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
-                              <span>{new Date(v.created_at).toLocaleString("pt-BR")}</span>
-                            </div>
-                            {v.author_name && (
-                              <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground">
-                                <User className="h-2.5 w-2.5" /> {v.author_name}
-                              </div>
-                            )}
-                            {v.change_note && (
-                              <p className="text-[10px] text-muted-foreground/90 italic mt-1 border-t border-border/50 pt-1">"{v.change_note}"</p>
-                            )}
-                            {v.file_name && (
-                              <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={v.file_name}>📎 {v.file_name}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </aside>
+                  {previewUrl && isPdf && <iframe src={previewUrl} title={d.title} className="w-full h-[75vh] bg-white rounded-lg border border-border" />}
+                  {previewUrl && isVideo && <video src={previewUrl} controls className="w-full max-h-[75vh] rounded-lg bg-black" />}
+                  {previewUrl && isAudio && <audio src={previewUrl} controls className="w-full" />}
+                  {previewUrl && isText && <iframe src={previewUrl} title={d.title} className="w-full h-[70vh] bg-card rounded-lg border border-border" />}
+                  {previewUrl && !isImage && !isPdf && !isVideo && !isAudio && !isText && (
+                    <div className="flex flex-col items-center justify-center h-64 bg-card border border-border rounded-lg gap-3">
+                      <Paperclip className="h-10 w-10 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">Pré-visualização não disponível para este formato</p>
+                      <a href={previewUrl} download={d.file_name ?? undefined} className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Baixar arquivo</a>
+                    </div>
+                  )}
+                  {d.content && (
+                    <div className="pt-3 border-t border-border/50">
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Notas</p>
+                      <article className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{d.content}</article>
+                    </div>
                   )}
                 </div>
-              </>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
+              )}
+            </div>
+
+            {showHistory && (
+              <aside className="w-72 shrink-0 border-l border-border bg-card overflow-auto">
+                <div className="p-3 border-b border-border flex items-center gap-2">
+                  <History className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-medium text-foreground">Histórico</span>
+                  <span className="ml-auto text-[10px] text-muted-foreground">{versions.length}</span>
+                </div>
+                <div className="p-2 space-y-1.5">
+                  {versionsLoading && <p className="text-[11px] text-muted-foreground italic px-2 py-3">Carregando…</p>}
+                  {!versionsLoading && versions.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground italic px-2 py-3 text-center">Sem versões anteriores.</p>
+                  )}
+                  {versions.map(v => (
+                    <div key={v.id} className="border border-border rounded-md p-2 bg-secondary/30 hover:border-primary/40 transition-colors">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-mono text-primary">v{v.version_number}</span>
+                        <button onClick={() => handleRestore(v)} className="text-[10px] inline-flex items-center gap-1 text-muted-foreground hover:text-primary" title="Restaurar"><RotateCcw className="h-2.5 w-2.5" /> Restaurar</button>
+                      </div>
+                      <p className="text-[11px] text-foreground truncate mt-0.5" title={v.title}>{v.title}</p>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">{new Date(v.created_at).toLocaleString("pt-BR")}</div>
+                      {v.author_name && <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><User className="h-2.5 w-2.5" /> {v.author_name}</div>}
+                      {v.change_note && <p className="text-[10px] text-muted-foreground/90 italic mt-1 border-t border-border/50 pt-1">"{v.change_note}"</p>}
+                    </div>
+                  ))}
+                </div>
+              </aside>
+            )}
+          </div>
+        );
+
+        if (previewMode === "modal") {
+          return (
+            <Dialog open={true} onOpenChange={(o) => { if (!o) closePreview(); }}>
+              <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-hidden flex flex-col p-0">
+                {Header}
+                {Body}
+              </DialogContent>
+            </Dialog>
+          );
+        }
+
+        // Dock panel — sticky right side, fills viewport height
+        return (
+          <div className="hidden lg:block fixed top-20 right-4 bottom-4 w-[44%] xl:w-[44%] 2xl:w-[48%] z-30 max-w-[900px]">
+            <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden flex flex-col h-full">
+              {Header}
+              {Body}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
+
+
