@@ -370,7 +370,12 @@ export default function Docs() {
           selectedProject={selectedProject}
           setSelectedProject={setSelectedProject}
           allCategories={allCategories}
-          onNewProject={() => setProjectDlg(true)}
+          onNewProject={(parentId, companyId) => {
+            setPName(""); setPDesc("");
+            setPCompany(companyId ?? (selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")));
+            setPParent(parentId ?? "");
+            setProjectDlg(true);
+          }}
         />
 
 
