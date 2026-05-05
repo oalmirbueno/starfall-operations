@@ -172,12 +172,37 @@ export function useDocs() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const uploadFile = async (file: File): Promise<{ path: string; name: string; mime: string; size: number }> => {
+  const uploadFile = async (
+    file: File,
+    onProgress?: (pct: number) => void,
+  ): Promise<{ path: string; name: string; mime: string; size: number }> => {
     if (!userId) throw new Error("auth");
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${userId}/${Date.now()}-${safe}`;
+
+    // Try signed upload URL + XHR for real progress
+    const signed = await supabase.storage.from("documents").createSignedUploadUrl(path);
+    if (!signed.error && signed.data?.signedUrl) {
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", signed.data!.signedUrl, true);
+        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`HTTP ${xhr.status}`)));
+        xhr.onerror = () => reject(new Error("Falha de rede"));
+        xhr.send(file);
+      });
+      onProgress?.(100);
+      return { path, name: file.name, mime: file.type, size: file.size };
+    }
+
+    // Fallback (sem progresso real)
+    onProgress?.(10);
     const { error } = await supabase.storage.from("documents").upload(path, file, { upsert: false });
     if (error) throw error;
+    onProgress?.(100);
     return { path, name: file.name, mime: file.type, size: file.size };
   };
 
