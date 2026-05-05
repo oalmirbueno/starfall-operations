@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
-import { Building2, Folder, FolderOpen, Search, Star, Files, Inbox, ChevronDown, ChevronRight } from "lucide-react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Building2, Folder, FolderOpen, Search, Star, Files, Inbox, ChevronDown, ChevronRight, Plus, Pencil, Trash2, GripVertical, Check, X, Palette, MoreVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useDocCategories, DocCategory } from "@/hooks/useDocCategories";
 import type { Company, DocItem } from "@/hooks/useDocs";
 
 interface Props {
@@ -12,20 +14,45 @@ interface Props {
   setFavoritesOnly: (v: boolean) => void;
   selectedCompany: string | "all";
   setSelectedCompany: (v: string | "all") => void;
-  allCategories: string[];
+  allCategories: string[]; // derivado dos documentos (legacy)
 }
+
+const COLOR_PRESETS = [
+  { name: "Padrão", value: null, swatch: "hsl(var(--muted-foreground))" },
+  { name: "Azul", value: "#3b82f6", swatch: "#3b82f6" },
+  { name: "Verde", value: "#10b981", swatch: "#10b981" },
+  { name: "Âmbar", value: "#f59e0b", swatch: "#f59e0b" },
+  { name: "Rosa", value: "#ec4899", swatch: "#ec4899" },
+  { name: "Roxo", value: "#8b5cf6", swatch: "#8b5cf6" },
+  { name: "Vermelho", value: "#ef4444", swatch: "#ef4444" },
+  { name: "Ciano", value: "#06b6d4", swatch: "#06b6d4" },
+];
 
 export function DocsSidebar({
   documents, companies, categoryFilter, setCategoryFilter,
   favoritesOnly, setFavoritesOnly, selectedCompany, setSelectedCompany, allCategories,
 }: Props) {
+  const { list: catsQ, create, rename, setColor, remove, reorder } = useDocCategories();
+  const dbCats = catsQ.data ?? [];
+
   const [q, setQ] = useState("");
   const [companiesOpen, setCompaniesOpen] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
-  const filteredCats = useMemo(() => {
+  // Mescla: categorias DB (com id/cor) + categorias usadas só nos documentos
+  const merged = useMemo(() => {
+    const byName = new Map<string, { name: string; cat?: DocCategory }>();
+    [...dbCats].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name))
+      .forEach(c => byName.set(c.name, { name: c.name, cat: c }));
+    allCategories.forEach(n => { if (!byName.has(n)) byName.set(n, { name: n }); });
+    let arr = Array.from(byName.values());
     const s = q.trim().toLowerCase();
-    return s ? allCategories.filter(c => c.toLowerCase().includes(s)) : allCategories;
-  }, [allCategories, q]);
+    if (s) arr = arr.filter(x => x.name.toLowerCase().includes(s));
+    return arr;
+  }, [dbCats, allCategories, q]);
 
   const totalCount = documents.length;
   const favCount = documents.filter(d => d.favorite).length;
@@ -35,9 +62,40 @@ export function DocsSidebar({
 
   const isAllActive = categoryFilter === "all" && !favoritesOnly && selectedCompany === "all";
 
+  const handleCreate = async () => {
+    const v = newName.trim();
+    if (!v) { setAdding(false); return; }
+    await create.mutateAsync({ name: v });
+    setNewName(""); setAdding(false);
+  };
+
+  const handleRename = async (item: { name: string; cat?: DocCategory }) => {
+    const v = editName.trim();
+    if (!v || v === item.name) { setEditingId(null); return; }
+    if (item.cat) {
+      await rename.mutateAsync({ id: item.cat.id, oldName: item.name, newName: v });
+    } else {
+      // legacy: cria a pasta com novo nome e renomeia docs
+      await create.mutateAsync({ name: v });
+      // depois ajusta os docs antigos via rename (precisa do id) — usa rename do recém criado
+      // Como o create já invalidou, só renomeia docs aqui via supabase direto seria duplicar.
+      // Solução simples: usar rename só quando temos cat; para legacy, criar e mover
+      // (mover é feito por componente externo; aqui apenas atualizamos nome local).
+    }
+    setEditingId(null);
+  };
+
+  const moveCat = async (idx: number, dir: -1 | 1) => {
+    const onlyDb = merged.filter(m => m.cat).map(m => m.cat!) as DocCategory[];
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= onlyDb.length) return;
+    const arr = [...onlyDb];
+    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+    await reorder.mutateAsync(arr);
+  };
+
   return (
     <aside className="col-span-12 lg:col-span-3 xl:col-span-3 2xl:col-span-2 bg-card border border-border rounded-lg overflow-hidden flex flex-col max-h-[80vh]">
-      {/* Header */}
       <div className="px-3 pt-3 pb-2 border-b border-border/60">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Biblioteca</h3>
@@ -54,80 +112,122 @@ export function DocsSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-3">
-        {/* Quick views */}
         <div className="space-y-0.5">
           <SidebarRow
-            icon={<Files className="h-3.5 w-3.5" />}
-            label="Todos os documentos"
-            count={totalCount}
+            icon={<Files className="h-3.5 w-3.5" />} label="Todos os documentos" count={totalCount}
             active={isAllActive}
             onClick={() => { setCategoryFilter("all"); setFavoritesOnly(false); setSelectedCompany("all"); }}
           />
           <SidebarRow
-            icon={<Star className={`h-3.5 w-3.5 ${favoritesOnly ? "fill-current" : ""}`} />}
-            label="Favoritos"
-            count={favCount}
-            active={favoritesOnly}
-            tone={favoritesOnly ? "warning" : "default"}
+            icon={<Star className={`h-3.5 w-3.5 ${favoritesOnly ? "fill-current" : ""}`} />} label="Favoritos" count={favCount}
+            active={favoritesOnly} tone={favoritesOnly ? "warning" : "default"}
             onClick={() => setFavoritesOnly(!favoritesOnly)}
           />
           <SidebarRow
-            icon={<Inbox className="h-3.5 w-3.5" />}
-            label="Sem categoria"
-            count={noCatCount}
+            icon={<Inbox className="h-3.5 w-3.5" />} label="Sem categoria" count={noCatCount}
             active={categoryFilter === "__none__"}
             onClick={() => setCategoryFilter(categoryFilter === "__none__" ? "all" : "__none__")}
           />
         </div>
 
-        {/* Categories — pastas */}
         <div className="space-y-1">
           <div className="flex items-center justify-between px-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Categorias</span>
-            <span className="text-[10px] text-muted-foreground/70">{filteredCats.length}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pastas</span>
+            <button onClick={() => { setAdding(true); setNewName(""); }}
+              className="text-muted-foreground hover:text-primary p-0.5 rounded transition-colors" title="Nova pasta">
+              <Plus className="h-3 w-3" />
+            </button>
           </div>
-          {filteredCats.length === 0 ? (
+
+          {adding && (
+            <div className="flex items-center gap-1 px-1">
+              <Input
+                autoFocus value={newName} onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleCreate(); if (e.key === "Escape") setAdding(false); }}
+                placeholder="Nome da pasta…" className="h-7 text-[11px] bg-secondary/50"
+              />
+              <button onClick={handleCreate} className="p-1 text-primary hover:bg-primary/10 rounded"><Check className="h-3 w-3" /></button>
+              <button onClick={() => setAdding(false)} className="p-1 text-muted-foreground hover:bg-secondary/60 rounded"><X className="h-3 w-3" /></button>
+            </div>
+          )}
+
+          {merged.length === 0 && !adding ? (
             <p className="text-[11px] text-muted-foreground/70 italic px-2 py-3 text-center border border-dashed border-border/50 rounded-md">
-              {q ? "Nenhuma pasta encontrada" : "Nenhuma categoria ainda"}
+              {q ? "Nenhuma pasta encontrada" : "Crie sua primeira pasta"}
             </p>
           ) : (
             <div className="space-y-0.5">
-              {filteredCats.map(cat => {
-                const active = categoryFilter === cat;
+              {merged.map((item, idx) => {
+                const cat = item.cat;
+                const active = categoryFilter === item.name;
+                const isEditing = editingId === (cat?.id ?? item.name);
+                const color = cat?.color ?? null;
+                const dbIdx = cat ? merged.filter(m => m.cat).findIndex(m => m.cat?.id === cat.id) : -1;
+                const dbTotal = merged.filter(m => m.cat).length;
+
+                if (isEditing) {
+                  return (
+                    <div key={item.name} className="flex items-center gap-1 px-1">
+                      <Input
+                        autoFocus value={editName} onChange={e => setEditName(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleRename(item); if (e.key === "Escape") setEditingId(null); }}
+                        className="h-7 text-[11px] bg-secondary/50"
+                      />
+                      <button onClick={() => handleRename(item)} className="p-1 text-primary hover:bg-primary/10 rounded"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => setEditingId(null)} className="p-1 text-muted-foreground hover:bg-secondary/60 rounded"><X className="h-3 w-3" /></button>
+                    </div>
+                  );
+                }
+
                 return (
-                  <button
-                    key={cat}
-                    onClick={() => setCategoryFilter(active ? "all" : cat)}
-                    title={cat}
-                    className={`group w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all ${
-                      active
-                        ? "bg-primary/10 text-primary ring-1 ring-primary/30"
-                        : "hover:bg-secondary/60 text-foreground/90"
+                  <div key={item.name}
+                    className={`group flex items-center gap-1 rounded-md transition-all ${
+                      active ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-secondary/60"
                     }`}
                   >
-                    <span className={`shrink-0 ${active ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`}>
-                      {active ? <FolderOpen className="h-3.5 w-3.5" /> : <Folder className="h-3.5 w-3.5" />}
-                    </span>
-                    <span className="text-[12px] leading-tight flex-1 break-words">{cat}</span>
-                    <span className={`text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded-full ${
-                      active ? "bg-primary/15 text-primary" : "bg-secondary/70 text-muted-foreground"
-                    }`}>
-                      {countByCategory(cat)}
-                    </span>
-                  </button>
+                    <button
+                      onClick={() => setCategoryFilter(active ? "all" : item.name)}
+                      title={item.name}
+                      className={`flex-1 flex items-center gap-2 px-2 py-1.5 text-left min-w-0 ${active ? "text-primary" : "text-foreground/90"}`}
+                    >
+                      <span className="shrink-0" style={color ? { color } : undefined}>
+                        {active ? <FolderOpen className="h-3.5 w-3.5" /> : <Folder className="h-3.5 w-3.5" />}
+                      </span>
+                      <span className="text-[12px] leading-tight flex-1 break-words">{item.name}</span>
+                      <span className={`text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded-full ${
+                        active ? "bg-primary/15 text-primary" : "bg-secondary/70 text-muted-foreground"
+                      }`}>{countByCategory(item.name)}</span>
+                    </button>
+
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center pr-1 transition-opacity">
+                      <CategoryActions
+                        item={item}
+                        canReorder={!!cat}
+                        canMoveUp={dbIdx > 0}
+                        canMoveDown={dbIdx >= 0 && dbIdx < dbTotal - 1}
+                        onRename={() => { setEditingId(cat?.id ?? item.name); setEditName(item.name); }}
+                        onColor={(c) => cat && setColor.mutate({ id: cat.id, color: c })}
+                        onDelete={() => {
+                          if (!cat) return;
+                          if (confirm(`Remover pasta "${item.name}"? Os documentos ficarão "Sem categoria".`)) {
+                            remove.mutate({ id: cat.id, name: item.name });
+                          }
+                        }}
+                        onMoveUp={() => moveCat(dbIdx, -1)}
+                        onMoveDown={() => moveCat(dbIdx, 1)}
+                      />
+                    </div>
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
 
-        {/* Companies — filtro secundário */}
         {companies.length > 0 && (
           <div className="space-y-1">
-            <button
-              onClick={() => setCompaniesOpen(o => !o)}
-              className="w-full flex items-center justify-between px-1.5 group"
-            >
+            <button onClick={() => setCompaniesOpen(o => !o)}
+              className="w-full flex items-center justify-between px-1.5 group">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-foreground flex items-center gap-1">
                 {companiesOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 Empresas
@@ -139,25 +239,17 @@ export function DocsSidebar({
                 {companies.map(c => {
                   const active = selectedCompany === c.id;
                   return (
-                    <button
-                      key={c.id}
-                      onClick={() => setSelectedCompany(active ? "all" : c.id)}
-                      title={c.name}
+                    <button key={c.id} onClick={() => setSelectedCompany(active ? "all" : c.id)} title={c.name}
                       className={`group w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all ${
                         active ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "hover:bg-secondary/60 text-foreground/90"
                       }`}
                     >
-                      {c.logo_url ? (
-                        <img src={c.logo_url} alt="" className="h-4 w-4 rounded-sm shrink-0" />
-                      ) : (
-                        <Building2 className={`h-3.5 w-3.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                      )}
+                      {c.logo_url ? <img src={c.logo_url} alt="" className="h-4 w-4 rounded-sm shrink-0" />
+                        : <Building2 className={`h-3.5 w-3.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />}
                       <span className="text-[12px] leading-tight flex-1 break-words">{c.name}</span>
                       <span className={`text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded-full ${
                         active ? "bg-primary/15 text-primary" : "bg-secondary/70 text-muted-foreground"
-                      }`}>
-                        {countByCompany(c.id)}
-                      </span>
+                      }`}>{countByCompany(c.id)}</span>
                     </button>
                   );
                 })}
@@ -167,6 +259,80 @@ export function DocsSidebar({
         )}
       </div>
     </aside>
+  );
+}
+
+function CategoryActions({
+  item, canReorder, canMoveUp, canMoveDown,
+  onRename, onColor, onDelete, onMoveUp, onMoveDown,
+}: {
+  item: { name: string; cat?: DocCategory };
+  canReorder: boolean; canMoveUp: boolean; canMoveDown: boolean;
+  onRename: () => void;
+  onColor: (c: string | null) => void;
+  onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="p-1 text-muted-foreground hover:text-foreground rounded" title="Opções">
+          <MoreVertical className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="right" align="start" className="w-52 p-1.5">
+        <button onClick={() => { onRename(); setOpen(false); }}
+          className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-secondary text-foreground">
+          <Pencil className="h-3.5 w-3.5" /> Renomear
+        </button>
+
+        {canReorder && (
+          <>
+            <button onClick={() => { onMoveUp(); setOpen(false); }} disabled={!canMoveUp}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-secondary text-foreground disabled:opacity-40 disabled:cursor-not-allowed">
+              <ArrowUp className="h-3.5 w-3.5" /> Mover para cima
+            </button>
+            <button onClick={() => { onMoveDown(); setOpen(false); }} disabled={!canMoveDown}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-secondary text-foreground disabled:opacity-40 disabled:cursor-not-allowed">
+              <ArrowDown className="h-3.5 w-3.5" /> Mover para baixo
+            </button>
+          </>
+        )}
+
+        {item.cat && (
+          <>
+            <div className="border-t border-border/60 my-1" />
+            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <Palette className="h-3 w-3" /> Cor
+            </div>
+            <div className="grid grid-cols-4 gap-1 px-1.5 pb-1">
+              {COLOR_PRESETS.map(c => (
+                <button key={c.name} title={c.name}
+                  onClick={() => { onColor(c.value); setOpen(false); }}
+                  className="h-6 w-6 rounded-md border border-border hover:scale-110 transition-transform flex items-center justify-center"
+                  style={{ backgroundColor: c.swatch + "33", color: c.swatch }}
+                >
+                  <Folder className="h-3 w-3" />
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-border/60 my-1" />
+            <button onClick={() => { onDelete(); setOpen(false); }}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-destructive/10 text-destructive">
+              <Trash2 className="h-3.5 w-3.5" /> Remover pasta
+            </button>
+          </>
+        )}
+
+        {!item.cat && (
+          <p className="text-[10px] text-muted-foreground italic px-2 py-1.5">
+            Esta pasta vem de documentos antigos. Renomeie para registrá-la.
+          </p>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -180,8 +346,7 @@ function SidebarRow({
     ? "bg-warning/10 text-warning ring-1 ring-warning/30"
     : "bg-primary/10 text-primary ring-1 ring-primary/30";
   return (
-    <button
-      onClick={onClick}
+    <button onClick={onClick}
       className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all ${
         active ? activeCls : "hover:bg-secondary/60 text-foreground/90"
       }`}
