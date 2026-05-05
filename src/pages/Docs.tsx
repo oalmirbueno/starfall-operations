@@ -525,9 +525,13 @@ export default function Docs() {
               </div>
 
               {(() => {
+                const dockOpen = !!previewDoc && previewMode === "dock";
+                const gridCls = dockOpen
+                  ? "grid grid-cols-1 xl:grid-cols-2 gap-3"
+                  : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3";
                 if (groupBy === "none") {
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+                    <div className={gridCls}>
                       {filteredDocs.map(d => renderDocCard(d))}
                     </div>
                   );
@@ -541,18 +545,18 @@ export default function Docs() {
                   if (groupBy === "category") {
                     key = d.category ?? "__none__";
                     label = d.category ?? "Sem categoria";
-                    icon = Layers;
+                    icon = d.category ? Layers : Folder;
                   } else if (groupBy === "project") {
                     const p = projectById(d.project_id);
                     key = d.project_id ?? "__none__";
                     label = p?.name ?? "Sem projeto";
                     sublabel = p ? (companyById(p.company_id)?.name ?? null) : null;
-                    icon = FolderKanban;
+                    icon = p ? FolderKanban : Folder;
                   } else {
                     const c = companyById(d.company_id);
                     key = d.company_id ?? "__none__";
                     label = c?.name ?? "Sem empresa";
-                    icon = Building2;
+                    icon = c ? Building2 : Folder;
                   }
                   if (!map.has(key)) map.set(key, { key, label, sublabel, color, items: [], icon });
                   map.get(key)!.items.push(d);
@@ -584,7 +588,7 @@ export default function Docs() {
                             </span>
                           </button>
                           {!collapsed && (
-                            <div className="p-3 pt-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 border-t border-border/50">
+                            <div className={`p-3 pt-2 ${gridCls} border-t border-border/50`}>
                               {g.items.map(d => renderDocCard(d))}
                             </div>
                           )}
