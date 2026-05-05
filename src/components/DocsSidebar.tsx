@@ -151,19 +151,19 @@ export function DocsSidebar({
           />
         </div>
 
-        {/* PROJETOS — pastas principais */}
+        {/* PASTAS — navegação principal (com sub-pastas) */}
         <div className="space-y-1">
           <div className="flex items-center justify-between px-1.5">
             <button onClick={() => setProjectsOpen(o => !o)}
               className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
               {projectsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               <FolderKanban className="h-3 w-3" />
-              Projetos
+              Pastas
               <span className="ml-1 text-muted-foreground/70 normal-case font-mono">({projects.length})</span>
             </button>
             {onNewProject && (
-              <button onClick={onNewProject}
-                className="text-muted-foreground hover:text-primary p-0.5 rounded transition-colors" title="Novo projeto">
+              <button onClick={() => onNewProject(null, null)}
+                className="text-muted-foreground hover:text-primary p-0.5 rounded transition-colors" title="Nova pasta">
                 <Plus className="h-3 w-3" />
               </button>
             )}
@@ -172,39 +172,79 @@ export function DocsSidebar({
           {projectsOpen && (
             projects.length === 0 ? (
               <p className="text-[11px] text-muted-foreground/70 italic px-2 py-3 text-center border border-dashed border-border/50 rounded-md">
-                Nenhum projeto criado
+                Nenhuma pasta criada
               </p>
             ) : (
               <div className="space-y-2">
-                {projectsByCompany.map(group => (
-                  <div key={group.key} className="space-y-0.5">
-                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground/80">
-                      <Building2 className="h-2.5 w-2.5" />
-                      <span className="truncate">{group.company?.name ?? "Sem empresa"}</span>
-                    </div>
-                    {group.items.map(p => {
-                      const active = selectedProject === p.id;
-                      const color = p.color ?? null;
-                      return (
-                        <button key={p.id}
-                          onClick={() => setSelectedProject(active ? "all" : p.id)}
-                          title={p.name}
-                          className={`group w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all ${
+                {projectsByCompany.map(group => {
+                  const childrenOf = (parentId: string | null) =>
+                    group.items.filter(p => (p.parent_id ?? null) === parentId);
+
+                  const renderFolder = (p: DocProject, depth: number) => {
+                    const active = selectedProject === p.id;
+                    const color = p.color ?? null;
+                    const subs = childrenOf(p.id);
+                    return (
+                      <div key={p.id} className="space-y-0.5">
+                        <div
+                          className={`group flex items-center gap-1 rounded-md transition-all ${
                             active ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "hover:bg-secondary/60 text-foreground/90"
                           }`}
+                          style={{ paddingLeft: depth * 10 }}
                         >
-                          <span className="shrink-0" style={color ? { color } : undefined}>
-                            {active ? <FolderOpen className="h-3.5 w-3.5" /> : <Folder className="h-3.5 w-3.5" />}
-                          </span>
-                          <span className="text-[12px] leading-tight flex-1 break-words">{p.name}</span>
-                          <span className={`text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded-full ${
-                            active ? "bg-primary/15 text-primary" : "bg-secondary/70 text-muted-foreground"
-                          }`}>{countByProject(p.id)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
+                          <button
+                            onClick={() => setSelectedProject(active ? "all" : p.id)}
+                            title={p.name}
+                            className="flex-1 flex items-center gap-2 px-2 py-1.5 text-left min-w-0"
+                          >
+                            <span className="shrink-0" style={color ? { color } : undefined}>
+                              {active ? <FolderOpen className="h-3.5 w-3.5" /> : <Folder className="h-3.5 w-3.5" />}
+                            </span>
+                            <span className="text-[12px] leading-tight flex-1 break-words">{p.name}</span>
+                            <span className={`text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded-full ${
+                              active ? "bg-primary/15 text-primary" : "bg-secondary/70 text-muted-foreground"
+                            }`}>{countByProject(p.id)}</span>
+                          </button>
+                          {onNewProject && depth === 0 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onNewProject(p.id, p.company_id); }}
+                              title="Nova sub-pasta"
+                              className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-primary transition-opacity"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        {subs.length > 0 && (
+                          <div className="space-y-0.5 border-l border-border/40 ml-3">
+                            {subs.map(s => renderFolder(s, depth + 1))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  };
+
+                  return (
+                    <div key={group.key} className="space-y-0.5">
+                      <div className="flex items-center justify-between px-1.5 py-0.5">
+                        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/80">
+                          <Building2 className="h-2.5 w-2.5" />
+                          <span className="truncate">{group.company?.name ?? "Sem empresa"}</span>
+                        </div>
+                        {onNewProject && group.company && (
+                          <button
+                            onClick={() => onNewProject(null, group.company!.id)}
+                            title="Nova pasta nesta empresa"
+                            className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-0.5 text-muted-foreground hover:text-primary"
+                          >
+                            <Plus className="h-2.5 w-2.5" />
+                          </button>
+                        )}
+                      </div>
+                      {childrenOf(null).map(p => renderFolder(p, 0))}
+                    </div>
+                  );
+                })}
               </div>
             )
           )}
