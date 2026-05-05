@@ -15,6 +15,7 @@ import Opportunities from "./pages/Opportunities";
 import Ideas from "./pages/Ideas";
 import UsefulLinks from "./pages/UsefulLinks";
 import Reports from "./pages/Reports";
+import Docs from "./pages/Docs";
 import SettingsPage from "./pages/SettingsPage";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
