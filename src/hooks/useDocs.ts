@@ -31,6 +31,18 @@ export interface DocItem {
   created_at: string; updated_at: string;
 }
 
+export interface DocVersion {
+  id: string; document_id: string; user_id: string;
+  version_number: number;
+  title: string; doc_type: DocType; category: string | null;
+  content: string | null; url: string | null;
+  file_path: string | null; file_name: string | null;
+  file_mime: string | null; file_size: number | null;
+  tags: string[]; company_id: string | null; project_id: string | null;
+  change_note: string | null; author_name: string | null;
+  created_at: string;
+}
+
 export function useDocs() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -154,8 +166,32 @@ export function useDocs() {
     onSuccess: () => { inv(); toast.success("Documento salvo"); },
     onError: (e: any) => toast.error(e.message),
   });
+  const snapshotVersion = async (doc: DocItem, changeNote?: string) => {
+    if (!userId) return;
+    // pega próximo número
+    const { data: last } = await supabase
+      .from("document_versions").select("version_number")
+      .eq("document_id", doc.id).order("version_number", { ascending: false }).limit(1).maybeSingle();
+    const nextNum = ((last as any)?.version_number ?? 0) + 1;
+    // autor
+    const { data: prof } = await supabase.from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
+    await supabase.from("document_versions").insert({
+      document_id: doc.id, user_id: userId, version_number: nextNum,
+      title: doc.title, doc_type: doc.doc_type, category: doc.category,
+      content: doc.content, url: doc.url,
+      file_path: doc.file_path, file_name: doc.file_name, file_mime: doc.file_mime, file_size: doc.file_size,
+      tags: doc.tags ?? [], company_id: doc.company_id, project_id: doc.project_id,
+      change_note: changeNote ?? null,
+      author_name: (prof as any)?.display_name ?? null,
+    });
+  };
+
   const updateDocument = useMutation({
-    mutationFn: async ({ id, ...patch }: Partial<DocItem> & { id: string }) => {
+    mutationFn: async ({ id, change_note, _skipSnapshot, ...patch }: Partial<DocItem> & { id: string; change_note?: string; _skipSnapshot?: boolean }) => {
+      if (!_skipSnapshot) {
+        const { data: current } = await supabase.from("documents").select("*").eq("id", id).maybeSingle();
+        if (current) await snapshotVersion(current as DocItem, change_note);
+      }
       const { data, error } = await supabase.from("documents").update(patch).eq("id", id).select().single();
       if (error) throw error; return data as DocItem;
     },
@@ -212,11 +248,39 @@ export function useDocs() {
     return data?.signedUrl ?? null;
   };
 
+  const listVersions = async (documentId: string): Promise<DocVersion[]> => {
+    const { data, error } = await supabase
+      .from("document_versions").select("*")
+      .eq("document_id", documentId)
+      .order("version_number", { ascending: false });
+    if (error) { toast.error(error.message); return []; }
+    return (data ?? []) as DocVersion[];
+  };
+
+  const restoreVersion = useMutation({
+    mutationFn: async ({ documentId, version, currentDoc }: { documentId: string; version: DocVersion; currentDoc: DocItem }) => {
+      // snapshot do estado atual antes de restaurar
+      await snapshotVersion(currentDoc, `Antes de restaurar v${version.version_number}`);
+      const patch = {
+        title: version.title, doc_type: version.doc_type, category: version.category,
+        content: version.content, url: version.url,
+        file_path: version.file_path, file_name: version.file_name,
+        file_mime: version.file_mime, file_size: version.file_size,
+        tags: version.tags ?? [], company_id: version.company_id, project_id: version.project_id,
+      };
+      const { data, error } = await supabase.from("documents").update(patch).eq("id", documentId).select().single();
+      if (error) throw error; return data as DocItem;
+    },
+    onSuccess: () => { inv(); toast.success("Versão restaurada"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return {
     companies, projects, documents,
     createCompany, updateCompany, removeCompany,
     createProject, updateProject, removeProject,
     createDocument, updateDocument, removeDocument,
     uploadFile, getFileUrl,
+    listVersions, restoreVersion,
   };
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useDocs, Company, DocProject, DocItem, DocType } from "@/hooks/useDocs";
+import { useDocs, Company, DocProject, DocItem, DocType, DocVersion } from "@/hooks/useDocs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, FolderKanban, FileText, Link2, Paperclip, Plus, Search, Star,
-  Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, BookOpen, Globe, Eye, X
+  Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, BookOpen, Globe, Eye, X,
+  History, RotateCcw, User
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +37,7 @@ export default function Docs() {
     createProject, removeProject,
     createDocument, updateDocument, removeDocument,
     uploadFile, getFileUrl,
+    listVersions, restoreVersion,
   } = useDocs();
 
   const [selectedCompany, setSelectedCompany] = useState<string | "all">("all");
@@ -80,15 +82,37 @@ export default function Docs() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // History state
+  const [showHistory, setShowHistory] = useState(false);
+  const [versions, setVersions] = useState<DocVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+
+  const loadVersions = async (docId: string) => {
+    setVersionsLoading(true);
+    const v = await listVersions(docId);
+    setVersions(v); setVersionsLoading(false);
+  };
+
   const openPreview = async (d: DocItem) => {
-    setPreviewDoc(d); setPreviewUrl(null);
+    setPreviewDoc(d); setPreviewUrl(null); setShowHistory(false); setVersions([]);
     if (d.doc_type === "file" && d.file_path) {
       setPreviewLoading(true);
       const url = await getFileUrl(d.file_path);
       setPreviewUrl(url); setPreviewLoading(false);
     }
   };
-  const closePreview = () => { setPreviewDoc(null); setPreviewUrl(null); };
+  const closePreview = () => { setPreviewDoc(null); setPreviewUrl(null); setShowHistory(false); setVersions([]); };
+
+  const handleRestore = async (v: DocVersion) => {
+    if (!previewDoc) return;
+    if (!confirm(`Restaurar a versão v${v.version_number}? A versão atual será salva no histórico.`)) return;
+    const restored = await restoreVersion.mutateAsync({ documentId: previewDoc.id, version: v, currentDoc: previewDoc });
+    setPreviewDoc(restored);
+    if (restored.doc_type === "file" && restored.file_path) {
+      const url = await getFileUrl(restored.file_path); setPreviewUrl(url);
+    }
+    await loadVersions(previewDoc.id);
+  };
 
   const resetDoc = () => {
     setEditingDoc(null); setDTitle(""); setDType("text");
@@ -731,12 +755,18 @@ export default function Docs() {
                     {previewUrl && (
                       <a href={previewUrl} download={d.file_name ?? undefined} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-4 w-4" /></a>
                     )}
+                    <button
+                      onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadVersions(d.id); }}
+                      className={`p-1.5 ${showHistory ? "text-primary bg-primary/10 rounded" : "text-muted-foreground hover:text-primary"}`}
+                      title="Histórico de versões"
+                    ><History className="h-4 w-4" /></button>
                     <button onClick={() => { closePreview(); openEditDoc(d); }} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-4 w-4" /></button>
                     <button onClick={closePreview} className="p-1.5 text-muted-foreground hover:text-foreground" title="Fechar"><X className="h-4 w-4" /></button>
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-6 bg-secondary/10">
+                <div className="flex-1 flex overflow-hidden">
+                  <div className="flex-1 overflow-auto p-6 bg-secondary/10">
                   {/* TEXT */}
                   {d.doc_type === "text" && (
                     d.content
@@ -802,6 +832,50 @@ export default function Docs() {
                         </div>
                       )}
                     </div>
+                  )}
+                  </div>
+
+                  {showHistory && (
+                    <aside className="w-80 shrink-0 border-l border-border bg-card overflow-auto">
+                      <div className="p-3 border-b border-border flex items-center gap-2">
+                        <History className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-xs font-medium text-foreground">Histórico de versões</span>
+                        <span className="ml-auto text-[10px] text-muted-foreground">{versions.length}</span>
+                      </div>
+                      <div className="p-2 space-y-1.5">
+                        {versionsLoading && <p className="text-[11px] text-muted-foreground italic px-2 py-3">Carregando…</p>}
+                        {!versionsLoading && versions.length === 0 && (
+                          <p className="text-[11px] text-muted-foreground italic px-2 py-3 text-center">Sem versões anteriores. Edite o documento para começar a registrar o histórico.</p>
+                        )}
+                        {versions.map(v => (
+                          <div key={v.id} className="border border-border rounded-md p-2 bg-secondary/30 hover:border-primary/40 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-mono text-primary">v{v.version_number}</span>
+                              <button
+                                onClick={() => handleRestore(v)}
+                                className="text-[10px] inline-flex items-center gap-1 text-muted-foreground hover:text-primary"
+                                title="Restaurar esta versão"
+                              ><RotateCcw className="h-2.5 w-2.5" /> Restaurar</button>
+                            </div>
+                            <p className="text-[11px] text-foreground truncate mt-0.5" title={v.title}>{v.title}</p>
+                            <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
+                              <span>{new Date(v.created_at).toLocaleString("pt-BR")}</span>
+                            </div>
+                            {v.author_name && (
+                              <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground">
+                                <User className="h-2.5 w-2.5" /> {v.author_name}
+                              </div>
+                            )}
+                            {v.change_note && (
+                              <p className="text-[10px] text-muted-foreground/90 italic mt-1 border-t border-border/50 pt-1">"{v.change_note}"</p>
+                            )}
+                            {v.file_name && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={v.file_name}>📎 {v.file_name}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </aside>
                   )}
                 </div>
               </>
