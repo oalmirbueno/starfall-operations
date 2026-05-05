@@ -179,12 +179,47 @@ export default function Credentials() {
     return arr;
   }, [credentials, search, filterClass, filter2FA, filterProvider, sortBy]);
 
-  // Group by provider for organization
+  // Group by "shelf": same root domain OR same normalized provider name
   const grouped = useMemo(() => {
-    const groups: Record<string, Record<string, Credential[]>> = { secret: {}, operational: {} };
+    const normProvider = (p: string) =>
+      p.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\b(inc|llc|ltd|ltda|sa|s\.a\.?|corp|co|gmbh|labs?|cloud|app|io|com|services?)\b/g, "")
+        .replace(/[^a-z0-9]/g, "")
+        .trim();
+    const rootDomain = (host: string) => {
+      const parts = host.split(".");
+      if (parts.length <= 2) return host;
+      // take last 2 labels (e.g. drive.google.com -> google.com)
+      return parts.slice(-2).join(".");
+    };
+    const shelfKey = (c: Credential) => {
+      const url = deriveProviderUrl(c);
+      const dom = url ? getDomain(url) : null;
+      const root = dom ? rootDomain(dom) : null;
+      const norm = normProvider(c.provider);
+      // prefer root domain stem if present, else normalized provider
+      const stem = root ? root.split(".")[0] : "";
+      return (stem && stem.length >= 2 ? stem : norm) || c.provider.toLowerCase();
+    };
+    const shelfLabel = (c: Credential) => {
+      const url = deriveProviderUrl(c);
+      const dom = url ? getDomain(url) : null;
+      if (dom) return rootDomain(dom);
+      return c.provider;
+    };
+
+    type Shelf = { key: string; label: string; favicon: string | null; items: Credential[] };
+    const groups: Record<string, Record<string, Shelf>> = { secret: {}, operational: {} };
     for (const c of filtered) {
       const cls = c.classification === "secret" ? "secret" : "operational";
-      (groups[cls][c.provider] ||= []).push(c);
+      const key = shelfKey(c);
+      const label = shelfLabel(c);
+      if (!groups[cls][key]) {
+        const url = deriveProviderUrl(c);
+        groups[cls][key] = { key, label, favicon: url ? faviconFor(url) : null, items: [] };
+      }
+      groups[cls][key].items.push(c);
     }
     return groups;
   }, [filtered]);
