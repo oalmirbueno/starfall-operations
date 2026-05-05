@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, FolderKanban, FileText, Link2, Paperclip, Plus, Search, Star,
-  Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, BookOpen, Globe
+  Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, BookOpen, Globe, Eye, X
 } from "lucide-react";
 import { toast } from "sonner";
 
