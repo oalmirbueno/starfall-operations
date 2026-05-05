@@ -765,7 +765,8 @@ export default function Docs() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-6 bg-secondary/10">
+                <div className="flex-1 flex overflow-hidden">
+                  <div className="flex-1 overflow-auto p-6 bg-secondary/10">
                   {/* TEXT */}
                   {d.doc_type === "text" && (
                     d.content
