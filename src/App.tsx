@@ -15,6 +15,7 @@ import Opportunities from "./pages/Opportunities";
 import Ideas from "./pages/Ideas";
 import UsefulLinks from "./pages/UsefulLinks";
 import Reports from "./pages/Reports";
+import Docs from "./pages/Docs";
 import SettingsPage from "./pages/SettingsPage";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,7 @@ const App = () => (
                     <Route path="/oportunidades" element={<Opportunities />} />
                     <Route path="/ideias" element={<Ideas />} />
                     <Route path="/links" element={<UsefulLinks />} />
+                    <Route path="/documentacao" element={<Docs />} />
                     <Route path="/relatorios" element={<Reports />} />
                     <Route path="/configuracoes" element={<SettingsPage />} />
                     <Route path="*" element={<NotFound />} />

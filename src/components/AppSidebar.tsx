@@ -1,4 +1,4 @@
-import { LayoutDashboard, CreditCard, Server, KeyRound, Bell, DollarSign, Lightbulb, StickyNote, FileBarChart, Settings, LogOut, ChevronRight, Link2 } from "lucide-react";
+import { LayoutDashboard, CreditCard, Server, KeyRound, Bell, DollarSign, Lightbulb, StickyNote, FileBarChart, Settings, LogOut, ChevronRight, Link2, BookOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +24,7 @@ const items = [
   { title: "Oportunidades", url: "/oportunidades", icon: Lightbulb },
   { title: "Ideias", url: "/ideias", icon: StickyNote },
   { title: "Links Úteis", url: "/links", icon: Link2 },
+  { title: "Documentação", url: "/documentacao", icon: BookOpen },
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
