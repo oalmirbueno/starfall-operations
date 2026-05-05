@@ -545,18 +545,18 @@ export default function Docs() {
                   if (groupBy === "category") {
                     key = d.category ?? "__none__";
                     label = d.category ?? "Sem categoria";
-                    icon = Layers;
+                    icon = d.category ? Layers : Folder;
                   } else if (groupBy === "project") {
                     const p = projectById(d.project_id);
                     key = d.project_id ?? "__none__";
                     label = p?.name ?? "Sem projeto";
                     sublabel = p ? (companyById(p.company_id)?.name ?? null) : null;
-                    icon = FolderKanban;
+                    icon = p ? FolderKanban : Folder;
                   } else {
                     const c = companyById(d.company_id);
                     key = d.company_id ?? "__none__";
                     label = c?.name ?? "Sem empresa";
-                    icon = Building2;
+                    icon = c ? Building2 : Folder;
                   }
                   if (!map.has(key)) map.set(key, { key, label, sublabel, color, items: [], icon });
                   map.get(key)!.items.push(d);
