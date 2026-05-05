@@ -110,20 +110,76 @@ export default function Docs() {
   const projectsForCompany = (cid: string | null) =>
     (projects.data ?? []).filter(p => !cid || p.company_id === cid);
 
+  // Available tags & categories from current dataset
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    (documents.data ?? []).forEach(d => (d.tags ?? []).forEach(t => t && s.add(t)));
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [documents.data]);
+
+  const allCategories = useMemo(() => {
+    const s = new Set<string>();
+    (documents.data ?? []).forEach(d => d.category && s.add(d.category));
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [documents.data]);
+
+  // Parse advanced operators: tag:foo  type:link  company:acme  cat:contrato  fav:true  "exact phrase"
+  const parsedSearch = useMemo(() => {
+    const raw = search.trim();
+    const tokens: string[] = [];
+    const ops: { key: string; val: string }[] = [];
+    const re = /(\w+):"([^"]+)"|(\w+):(\S+)|"([^"]+)"|(\S+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(raw)) !== null) {
+      if (m[1]) ops.push({ key: m[1].toLowerCase(), val: m[2].toLowerCase() });
+      else if (m[3]) ops.push({ key: m[3].toLowerCase(), val: m[4].toLowerCase() });
+      else if (m[5]) tokens.push(m[5].toLowerCase());
+      else if (m[6]) tokens.push(m[6].toLowerCase());
+    }
+    return { tokens, ops };
+  }, [search]);
+
   const filteredDocs = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const { tokens, ops } = parsedSearch;
     return (documents.data ?? []).filter(d => {
       if (selectedCompany !== "all" && d.company_id !== selectedCompany) return false;
       if (selectedProject === "none" && d.project_id !== null) return false;
       else if (selectedProject !== "all" && selectedProject !== "none" && d.project_id !== selectedProject) return false;
       if (typeFilter !== "all" && d.doc_type !== typeFilter) return false;
-      if (q) {
-        const hay = [d.title, d.category, d.content, d.url, d.file_name, ...(d.tags ?? [])].filter(Boolean).join(" ").toLowerCase();
-        if (!hay.includes(q)) return false;
+      if (categoryFilter !== "all" && (d.category ?? "") !== categoryFilter) return false;
+      if (favoritesOnly && !d.favorite) return false;
+      if (tagFilter.length && !tagFilter.every(t => (d.tags ?? []).includes(t))) return false;
+
+      const company = companyById(d.company_id);
+      const project = projectById(d.project_id);
+
+      // operadores
+      for (const { key, val } of ops) {
+        if (key === "tag" && !(d.tags ?? []).some(t => t.toLowerCase().includes(val))) return false;
+        else if (key === "type" && d.doc_type !== val) return false;
+        else if (key === "cat" && (d.category ?? "").toLowerCase() !== val) return false;
+        else if (key === "company" && !company?.name.toLowerCase().includes(val)) return false;
+        else if (key === "project" && !project?.name.toLowerCase().includes(val)) return false;
+        else if (key === "fav" && !d.favorite) return false;
+      }
+
+      if (tokens.length) {
+        const hay = [
+          d.title, d.category, d.content, d.url, d.file_name,
+          company?.name, project?.name, ...(d.tags ?? [])
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!tokens.every(t => hay.includes(t))) return false;
       }
       return true;
     });
-  }, [documents.data, selectedCompany, selectedProject, search, typeFilter]);
+  }, [documents.data, selectedCompany, selectedProject, parsedSearch, typeFilter, categoryFilter, favoritesOnly, tagFilter]);
+
+  const hasActiveFilters = typeFilter !== "all" || categoryFilter !== "all" || favoritesOnly || tagFilter.length > 0 || search.trim() !== "" || selectedCompany !== "all" || selectedProject !== "all";
+  const clearAllFilters = () => {
+    setSearch(""); setTypeFilter("all"); setCategoryFilter("all");
+    setFavoritesOnly(false); setTagFilter([]);
+    setSelectedCompany("all"); setSelectedProject("all");
+  };
 
   const handleSaveDoc = async () => {
     if (!dTitle.trim()) { toast.error("Título é obrigatório"); return; }
