@@ -13,6 +13,7 @@ import {
   History, RotateCcw, User, Tag, Layers
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DocsSidebar } from "@/components/DocsSidebar";
 import { toast } from "sonner";
 
 function getDomain(url: string | null): string | null {
