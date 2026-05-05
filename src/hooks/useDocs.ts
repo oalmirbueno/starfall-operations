@@ -15,6 +15,7 @@ export interface Company {
 
 export interface DocProject {
   id: string; user_id: string; company_id: string;
+  parent_id: string | null;
   name: string; description: string | null;
   status: string; color: string | null; position: number;
   created_at: string; updated_at: string;
