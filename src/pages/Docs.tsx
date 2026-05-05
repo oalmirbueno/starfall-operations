@@ -791,9 +791,6 @@ export default function Docs() {
         </DialogContent>
       </Dialog>
 
-      {/* Preview dialog */}
-      <Dialog open={!!previewDoc} onOpenChange={(o) => { if (!o) closePreview(); }}>
-        <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-hidden flex flex-col p-0">
       {/* Preview body (used in dock + modal) */}
       {(() => {
         if (!previewDoc) return null;
