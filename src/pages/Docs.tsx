@@ -418,8 +418,36 @@ export default function Docs() {
             {dType === "file" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">{editingDoc?.file_path ? "Substituir arquivo (opcional)" : "Arquivo *"}</Label>
-                <Input type="file" onChange={e => setDFile(e.target.files?.[0] ?? null)} className="bg-secondary/50" />
-                {editingDoc?.file_name && <p className="text-[11px] text-muted-foreground">Atual: {editingDoc.file_name}</p>}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault(); setDragOver(false);
+                    const f = e.dataTransfer.files?.[0]; if (f) setDFile(f);
+                  }}
+                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${dragOver ? "border-primary bg-primary/5" : "border-border bg-secondary/30 hover:border-primary/50"}`}
+                >
+                  <input
+                    type="file"
+                    onChange={e => setDFile(e.target.files?.[0] ?? null)}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    accept="*/*"
+                  />
+                  <Paperclip className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  {dFile ? (
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{dFile.name}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{fmtSize(dFile.size)} · {dFile.type || "tipo desconhecido"}</p>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDFile(null); }} className="text-[11px] text-destructive hover:underline mt-1">Remover</button>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-foreground">Arraste e solte um arquivo aqui</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">ou clique para selecionar · qualquer formato</p>
+                    </div>
+                  )}
+                </div>
+                {editingDoc?.file_name && !dFile && <p className="text-[11px] text-muted-foreground">Atual: {editingDoc.file_name}</p>}
               </div>
             )}
             <div className="space-y-1.5">
