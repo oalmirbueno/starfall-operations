@@ -755,6 +755,11 @@ export default function Docs() {
                     {previewUrl && (
                       <a href={previewUrl} download={d.file_name ?? undefined} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-4 w-4" /></a>
                     )}
+                    <button
+                      onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadVersions(d.id); }}
+                      className={`p-1.5 ${showHistory ? "text-primary bg-primary/10 rounded" : "text-muted-foreground hover:text-primary"}`}
+                      title="Histórico de versões"
+                    ><History className="h-4 w-4" /></button>
                     <button onClick={() => { closePreview(); openEditDoc(d); }} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-4 w-4" /></button>
                     <button onClick={closePreview} className="p-1.5 text-muted-foreground hover:text-foreground" title="Fechar"><X className="h-4 w-4" /></button>
                   </div>
