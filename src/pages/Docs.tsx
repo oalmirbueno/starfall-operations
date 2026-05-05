@@ -37,6 +37,7 @@ export default function Docs() {
     createProject, removeProject,
     createDocument, updateDocument, removeDocument,
     uploadFile, getFileUrl,
+    listVersions, restoreVersion,
   } = useDocs();
 
   const [selectedCompany, setSelectedCompany] = useState<string | "all">("all");
