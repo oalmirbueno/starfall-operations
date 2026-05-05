@@ -628,16 +628,28 @@ export default function Docs() {
         </DialogContent>
       </Dialog>
 
-      {/* Project dialog */}
+      {/* Project (Folder) dialog */}
       <Dialog open={projectDlg} onOpenChange={setProjectDlg}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Novo Projeto</DialogTitle><DialogDescription>Vincule a uma empresa.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>{pParent ? "Nova Sub-pasta" : "Nova Pasta"}</DialogTitle><DialogDescription>Pastas organizam documentos dentro de uma empresa. Você pode criar sub-pastas dentro de outra pasta.</DialogDescription></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Empresa *</Label>
-              <Select value={pCompany} onValueChange={setPCompany}>
+              <Select value={pCompany} onValueChange={(v) => { setPCompany(v); setPParent(""); }}>
                 <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>{companies.data?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Dentro de (opcional)</Label>
+              <Select value={pParent || "none"} onValueChange={v => setPParent(v === "none" ? "" : v)} disabled={!pCompany}>
+                <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Pasta-pai" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Raiz da empresa —</SelectItem>
+                  {projectsForCompany(pCompany || null).filter(p => !p.parent_id).map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5"><Label className="text-xs">Nome *</Label><Input value={pName} onChange={e => setPName(e.target.value)} className="bg-secondary/50" /></div>
@@ -645,7 +657,7 @@ export default function Docs() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setProjectDlg(false)}>Cancelar</Button>
-            <Button onClick={async () => { if (!pName.trim() || !pCompany) { toast.error("Empresa e nome obrigatórios"); return; } await createProject.mutateAsync({ company_id: pCompany, name: pName.trim(), description: pDesc || null }); setProjectDlg(false); }}>Criar</Button>
+            <Button onClick={async () => { if (!pName.trim() || !pCompany) { toast.error("Empresa e nome obrigatórios"); return; } await createProject.mutateAsync({ company_id: pCompany, name: pName.trim(), description: pDesc || null, parent_id: pParent || null }); setProjectDlg(false); }}>Criar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
