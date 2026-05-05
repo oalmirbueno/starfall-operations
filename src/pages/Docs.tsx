@@ -42,6 +42,10 @@ export default function Docs() {
   const [selectedProject, setSelectedProject] = useState<string | "all" | "none">("all");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [companyDlg, setCompanyDlg] = useState(false);
   const [projectDlg, setProjectDlg] = useState(false);
