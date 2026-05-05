@@ -1,0 +1,197 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+
+export type DocType = "text" | "link" | "file";
+
+export interface Company {
+  id: string; user_id: string;
+  name: string; description: string | null;
+  website: string | null; logo_url: string | null;
+  color: string | null; position: number;
+  created_at: string; updated_at: string;
+}
+
+export interface DocProject {
+  id: string; user_id: string; company_id: string;
+  name: string; description: string | null;
+  status: string; color: string | null; position: number;
+  created_at: string; updated_at: string;
+}
+
+export interface DocItem {
+  id: string; user_id: string;
+  company_id: string | null; project_id: string | null;
+  title: string; doc_type: DocType; category: string | null;
+  content: string | null; url: string | null;
+  file_path: string | null; file_name: string | null;
+  file_mime: string | null; file_size: number | null;
+  tags: string[]; favorite: boolean; position: number;
+  created_at: string; updated_at: string;
+}
+
+export function useDocs() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const userId = user?.id;
+
+  const companies = useQuery({
+    queryKey: ["doc-companies", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("companies").select("*")
+        .order("position").order("name");
+      if (error) throw error;
+      return (data ?? []) as Company[];
+    },
+  });
+
+  const projects = useQuery({
+    queryKey: ["doc-projects", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("doc_projects").select("*")
+        .order("position").order("name");
+      if (error) throw error;
+      return (data ?? []) as DocProject[];
+    },
+  });
+
+  const documents = useQuery({
+    queryKey: ["documents", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("documents").select("*")
+        .order("favorite", { ascending: false })
+        .order("position").order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as DocItem[];
+    },
+  });
+
+  const inv = () => {
+    qc.invalidateQueries({ queryKey: ["doc-companies", userId] });
+    qc.invalidateQueries({ queryKey: ["doc-projects", userId] });
+    qc.invalidateQueries({ queryKey: ["documents", userId] });
+  };
+
+  // Companies
+  const createCompany = useMutation({
+    mutationFn: async (input: Partial<Company>) => {
+      if (!userId) throw new Error("auth");
+      const { data, error } = await supabase.from("companies")
+        .insert({ name: input.name!, description: input.description ?? null, website: input.website ?? null, logo_url: input.logo_url ?? null, color: input.color ?? null, user_id: userId })
+        .select().single();
+      if (error) throw error; return data as Company;
+    },
+    onSuccess: () => { inv(); toast.success("Empresa criada"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const updateCompany = useMutation({
+    mutationFn: async ({ id, ...patch }: Partial<Company> & { id: string }) => {
+      const { data, error } = await supabase.from("companies").update(patch).eq("id", id).select().single();
+      if (error) throw error; return data as Company;
+    },
+    onSuccess: () => inv(),
+    onError: (e: any) => toast.error(e.message),
+  });
+  const removeCompany = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from("companies").delete().eq("id", id); if (error) throw error; },
+    onSuccess: () => { inv(); toast.success("Empresa removida"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Projects
+  const createProject = useMutation({
+    mutationFn: async (input: Partial<DocProject> & { company_id: string; name: string }) => {
+      if (!userId) throw new Error("auth");
+      const { data, error } = await supabase.from("doc_projects")
+        .insert({ name: input.name, description: input.description ?? null, status: input.status ?? "ativo", color: input.color ?? null, company_id: input.company_id, user_id: userId })
+        .select().single();
+      if (error) throw error; return data as DocProject;
+    },
+    onSuccess: () => { inv(); toast.success("Projeto criado"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const updateProject = useMutation({
+    mutationFn: async ({ id, ...patch }: Partial<DocProject> & { id: string }) => {
+      const { data, error } = await supabase.from("doc_projects").update(patch).eq("id", id).select().single();
+      if (error) throw error; return data as DocProject;
+    },
+    onSuccess: () => inv(),
+    onError: (e: any) => toast.error(e.message),
+  });
+  const removeProject = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from("doc_projects").delete().eq("id", id); if (error) throw error; },
+    onSuccess: () => { inv(); toast.success("Projeto removido"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Documents
+  const createDocument = useMutation({
+    mutationFn: async (input: Partial<DocItem>) => {
+      if (!userId) throw new Error("auth");
+      const payload = {
+        user_id: userId,
+        title: input.title!,
+        doc_type: (input.doc_type ?? "text") as DocType,
+        company_id: input.company_id ?? null,
+        project_id: input.project_id ?? null,
+        category: input.category ?? null,
+        content: input.content ?? null,
+        url: input.url ?? null,
+        file_path: input.file_path ?? null,
+        file_name: input.file_name ?? null,
+        file_mime: input.file_mime ?? null,
+        file_size: input.file_size ?? null,
+        tags: input.tags ?? [],
+        favorite: input.favorite ?? false,
+      };
+      const { data, error } = await supabase.from("documents").insert(payload).select().single();
+      if (error) throw error; return data as DocItem;
+    },
+    onSuccess: () => { inv(); toast.success("Documento salvo"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const updateDocument = useMutation({
+    mutationFn: async ({ id, ...patch }: Partial<DocItem> & { id: string }) => {
+      const { data, error } = await supabase.from("documents").update(patch).eq("id", id).select().single();
+      if (error) throw error; return data as DocItem;
+    },
+    onSuccess: () => inv(),
+    onError: (e: any) => toast.error(e.message),
+  });
+  const removeDocument = useMutation({
+    mutationFn: async (doc: DocItem) => {
+      if (doc.file_path) { await supabase.storage.from("documents").remove([doc.file_path]); }
+      const { error } = await supabase.from("documents").delete().eq("id", doc.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { inv(); toast.success("Documento removido"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const uploadFile = async (file: File): Promise<{ path: string; name: string; mime: string; size: number }> => {
+    if (!userId) throw new Error("auth");
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${userId}/${Date.now()}-${safe}`;
+    const { error } = await supabase.storage.from("documents").upload(path, file, { upsert: false });
+    if (error) throw error;
+    return { path, name: file.name, mime: file.type, size: file.size };
+  };
+
+  const getFileUrl = async (path: string): Promise<string | null> => {
+    const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, 60 * 10);
+    if (error) return null;
+    return data?.signedUrl ?? null;
+  };
+
+  return {
+    companies, projects, documents,
+    createCompany, updateCompany, removeCompany,
+    createProject, updateProject, removeProject,
+    createDocument, updateDocument, removeDocument,
+    uploadFile, getFileUrl,
+  };
+}
