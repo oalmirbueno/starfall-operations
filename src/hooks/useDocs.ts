@@ -31,6 +31,18 @@ export interface DocItem {
   created_at: string; updated_at: string;
 }
 
+export interface DocVersion {
+  id: string; document_id: string; user_id: string;
+  version_number: number;
+  title: string; doc_type: DocType; category: string | null;
+  content: string | null; url: string | null;
+  file_path: string | null; file_name: string | null;
+  file_mime: string | null; file_size: number | null;
+  tags: string[]; company_id: string | null; project_id: string | null;
+  change_note: string | null; author_name: string | null;
+  created_at: string;
+}
+
 export function useDocs() {
   const { user } = useAuth();
   const qc = useQueryClient();
