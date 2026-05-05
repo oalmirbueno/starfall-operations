@@ -507,7 +507,7 @@ export default function Docs() {
                       className={`px-2 py-0.5 rounded-md text-[11px] transition-colors ${
                         groupBy === g ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                       }`}>
-                      {g === "category" ? "Categoria" : g === "project" ? "Projeto" : g === "company" ? "Empresa" : "Nenhum"}
+                      {g === "category" ? "Categoria" : g === "project" ? "Pasta" : g === "company" ? "Empresa" : "Nenhum"}
                     </button>
                   ))}
                 </div>
