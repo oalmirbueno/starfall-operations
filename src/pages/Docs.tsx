@@ -482,6 +482,122 @@ export default function Docs() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Preview dialog */}
+      <Dialog open={!!previewDoc} onOpenChange={(o) => { if (!o) closePreview(); }}>
+        <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-hidden flex flex-col p-0">
+          {previewDoc && (() => {
+            const d = previewDoc;
+            const company = companyById(d.company_id);
+            const project = projectById(d.project_id);
+            const TypeIcon = d.doc_type === "link" ? Link2 : d.doc_type === "file" ? Paperclip : FileText;
+            const isImage = d.file_mime?.startsWith("image/");
+            const isPdf = d.file_mime === "application/pdf" || d.file_name?.toLowerCase().endsWith(".pdf");
+            const isVideo = d.file_mime?.startsWith("video/");
+            const isAudio = d.file_mime?.startsWith("audio/");
+            const isText = d.file_mime?.startsWith("text/") || /\.(txt|md|csv|json|log|yaml|yml|xml|ini)$/i.test(d.file_name ?? "");
+
+            return (
+              <>
+                <div className="flex items-start justify-between gap-3 px-6 pt-5 pb-3 border-b border-border">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <TypeIcon className="h-4 w-4 text-primary shrink-0" />
+                      <h2 className="text-base font-semibold text-foreground truncate">{d.title}</h2>
+                      {d.favorite && <Star className="h-3.5 w-3.5 text-warning fill-current" />}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-[11px] text-muted-foreground">
+                      {company && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><Building2 className="h-2.5 w-2.5" />{company.name}</span>}
+                      {project && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><FolderKanban className="h-2.5 w-2.5" />{project.name}</span>}
+                      {d.category && <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">{d.category}</span>}
+                      {(d.tags ?? []).map(t => <span key={t} className="bg-secondary/50 px-1.5 py-0.5 rounded">#{t}</span>)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {previewUrl && (
+                      <a href={previewUrl} target="_blank" rel="noreferrer" className="p-1.5 text-muted-foreground hover:text-primary" title="Abrir em nova aba"><ExternalLink className="h-4 w-4" /></a>
+                    )}
+                    {previewUrl && (
+                      <a href={previewUrl} download={d.file_name ?? undefined} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-4 w-4" /></a>
+                    )}
+                    <button onClick={() => { closePreview(); openEditDoc(d); }} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-4 w-4" /></button>
+                    <button onClick={closePreview} className="p-1.5 text-muted-foreground hover:text-foreground" title="Fechar"><X className="h-4 w-4" /></button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-auto p-6 bg-secondary/10">
+                  {/* TEXT */}
+                  {d.doc_type === "text" && (
+                    d.content
+                      ? <article className="prose prose-invert prose-sm max-w-none whitespace-pre-wrap text-foreground leading-relaxed">{d.content}</article>
+                      : <p className="text-sm text-muted-foreground italic">Sem conteúdo.</p>
+                  )}
+
+                  {/* LINK */}
+                  {d.doc_type === "link" && d.url && (() => {
+                    const href = d.url.startsWith("http") ? d.url : `https://${d.url}`;
+                    const dom = getDomain(d.url);
+                    return (
+                      <div className="space-y-3">
+                        <a href={href} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-4 bg-card border border-border rounded-lg hover:border-primary transition-colors">
+                          {favicon(d.url) ? <img src={favicon(d.url) ?? ""} alt="" className="h-8 w-8 rounded" /> : <Globe className="h-8 w-8 text-primary" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{dom ?? href}</p>
+                            <p className="text-xs text-muted-foreground truncate">{href}</p>
+                          </div>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        </a>
+                        {d.content && <article className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{d.content}</article>}
+                      </div>
+                    );
+                  })()}
+
+                  {/* FILE */}
+                  {d.doc_type === "file" && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="truncate">{d.file_name} · {fmtSize(d.file_size)} · {d.file_mime || "binário"}</span>
+                      </div>
+                      {previewLoading && <div className="flex items-center justify-center h-64"><Skeleton className="h-full w-full" /></div>}
+                      {!previewLoading && !previewUrl && <p className="text-sm text-destructive">Não foi possível carregar o arquivo.</p>}
+                      {previewUrl && isImage && (
+                        <div className="flex items-center justify-center bg-card border border-border rounded-lg p-2">
+                          <img src={previewUrl} alt={d.title} className="max-h-[70vh] object-contain" />
+                        </div>
+                      )}
+                      {previewUrl && isPdf && (
+                        <iframe src={previewUrl} title={d.title} className="w-full h-[75vh] bg-white rounded-lg border border-border" />
+                      )}
+                      {previewUrl && isVideo && (
+                        <video src={previewUrl} controls className="w-full max-h-[75vh] rounded-lg bg-black" />
+                      )}
+                      {previewUrl && isAudio && (
+                        <audio src={previewUrl} controls className="w-full" />
+                      )}
+                      {previewUrl && isText && (
+                        <iframe src={previewUrl} title={d.title} className="w-full h-[70vh] bg-card rounded-lg border border-border" />
+                      )}
+                      {previewUrl && !isImage && !isPdf && !isVideo && !isAudio && !isText && (
+                        <div className="flex flex-col items-center justify-center h-64 bg-card border border-border rounded-lg gap-3">
+                          <Paperclip className="h-10 w-10 text-muted-foreground/40" />
+                          <p className="text-sm text-muted-foreground">Pré-visualização não disponível para este formato</p>
+                          <a href={previewUrl} download={d.file_name ?? undefined} className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Baixar arquivo</a>
+                        </div>
+                      )}
+                      {d.content && (
+                        <div className="pt-3 border-t border-border/50">
+                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Notas</p>
+                          <article className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{d.content}</article>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
