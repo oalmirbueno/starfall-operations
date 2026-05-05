@@ -51,7 +51,7 @@ export default function Docs() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [groupBy, setGroupBy] = useState<"category" | "project" | "company" | "none">("category");
+  const [groupBy, setGroupBy] = useState<"category" | "project" | "company" | "none">("project");
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const toggleGroup = (k: string) => setCollapsedGroups(s => {
     const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n;
@@ -360,13 +360,17 @@ export default function Docs() {
         <DocsSidebar
           documents={documents.data ?? []}
           companies={companies.data ?? []}
+          projects={projects.data ?? []}
           categoryFilter={categoryFilter}
           setCategoryFilter={setCategoryFilter}
           favoritesOnly={favoritesOnly}
           setFavoritesOnly={setFavoritesOnly}
           selectedCompany={selectedCompany}
           setSelectedCompany={(v) => { setSelectedCompany(v); setSelectedProject("all"); }}
+          selectedProject={selectedProject}
+          setSelectedProject={setSelectedProject}
           allCategories={allCategories}
+          onNewProject={() => setProjectDlg(true)}
         />
 
 
