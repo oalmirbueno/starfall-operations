@@ -42,6 +42,10 @@ export default function Docs() {
   const [selectedProject, setSelectedProject] = useState<string | "all" | "none">("all");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [companyDlg, setCompanyDlg] = useState(false);
   const [projectDlg, setProjectDlg] = useState(false);
@@ -106,20 +110,76 @@ export default function Docs() {
   const projectsForCompany = (cid: string | null) =>
     (projects.data ?? []).filter(p => !cid || p.company_id === cid);
 
+  // Available tags & categories from current dataset
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    (documents.data ?? []).forEach(d => (d.tags ?? []).forEach(t => t && s.add(t)));
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [documents.data]);
+
+  const allCategories = useMemo(() => {
+    const s = new Set<string>();
+    (documents.data ?? []).forEach(d => d.category && s.add(d.category));
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [documents.data]);
+
+  // Parse advanced operators: tag:foo  type:link  company:acme  cat:contrato  fav:true  "exact phrase"
+  const parsedSearch = useMemo(() => {
+    const raw = search.trim();
+    const tokens: string[] = [];
+    const ops: { key: string; val: string }[] = [];
+    const re = /(\w+):"([^"]+)"|(\w+):(\S+)|"([^"]+)"|(\S+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(raw)) !== null) {
+      if (m[1]) ops.push({ key: m[1].toLowerCase(), val: m[2].toLowerCase() });
+      else if (m[3]) ops.push({ key: m[3].toLowerCase(), val: m[4].toLowerCase() });
+      else if (m[5]) tokens.push(m[5].toLowerCase());
+      else if (m[6]) tokens.push(m[6].toLowerCase());
+    }
+    return { tokens, ops };
+  }, [search]);
+
   const filteredDocs = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const { tokens, ops } = parsedSearch;
     return (documents.data ?? []).filter(d => {
       if (selectedCompany !== "all" && d.company_id !== selectedCompany) return false;
       if (selectedProject === "none" && d.project_id !== null) return false;
       else if (selectedProject !== "all" && selectedProject !== "none" && d.project_id !== selectedProject) return false;
       if (typeFilter !== "all" && d.doc_type !== typeFilter) return false;
-      if (q) {
-        const hay = [d.title, d.category, d.content, d.url, d.file_name, ...(d.tags ?? [])].filter(Boolean).join(" ").toLowerCase();
-        if (!hay.includes(q)) return false;
+      if (categoryFilter !== "all" && (d.category ?? "") !== categoryFilter) return false;
+      if (favoritesOnly && !d.favorite) return false;
+      if (tagFilter.length && !tagFilter.every(t => (d.tags ?? []).includes(t))) return false;
+
+      const company = (companies.data ?? []).find(c => c.id === d.company_id) ?? null;
+      const project = (projects.data ?? []).find(p => p.id === d.project_id) ?? null;
+
+      // operadores
+      for (const { key, val } of ops) {
+        if (key === "tag" && !(d.tags ?? []).some(t => t.toLowerCase().includes(val))) return false;
+        else if (key === "type" && d.doc_type !== val) return false;
+        else if (key === "cat" && (d.category ?? "").toLowerCase() !== val) return false;
+        else if (key === "company" && !company?.name.toLowerCase().includes(val)) return false;
+        else if (key === "project" && !project?.name.toLowerCase().includes(val)) return false;
+        else if (key === "fav" && !d.favorite) return false;
+      }
+
+      if (tokens.length) {
+        const hay = [
+          d.title, d.category, d.content, d.url, d.file_name,
+          company?.name, project?.name, ...(d.tags ?? [])
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!tokens.every(t => hay.includes(t))) return false;
       }
       return true;
     });
-  }, [documents.data, selectedCompany, selectedProject, search, typeFilter]);
+  }, [documents.data, selectedCompany, selectedProject, parsedSearch, typeFilter, categoryFilter, favoritesOnly, tagFilter]);
+
+  const hasActiveFilters = typeFilter !== "all" || categoryFilter !== "all" || favoritesOnly || tagFilter.length > 0 || search.trim() !== "" || selectedCompany !== "all" || selectedProject !== "all";
+  const clearAllFilters = () => {
+    setSearch(""); setTypeFilter("all"); setCategoryFilter("all");
+    setFavoritesOnly(false); setTagFilter([]);
+    setSelectedCompany("all"); setSelectedProject("all");
+  };
 
   const handleSaveDoc = async () => {
     if (!dTitle.trim()) { toast.error("Título é obrigatório"); return; }
@@ -278,20 +338,106 @@ export default function Docs() {
 
         {/* Main */}
         <main className="col-span-12 lg:col-span-10 space-y-4">
-          <div className="flex flex-wrap items-center gap-2 p-3 bg-card border border-border rounded-lg">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar documentos…" className="pl-8 h-9 bg-secondary/50" />
+          <div className="bg-card border border-border rounded-lg p-3 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder='Buscar… (use tag:foo  type:link  company:acme  cat:contrato  fav:true  "frase exata")'
+                  className="pl-8 h-9 bg-secondary/50 font-mono text-xs"
+                />
+              </div>
+              <Select value={selectedCompany} onValueChange={(v) => { setSelectedCompany(v as any); setSelectedProject("all"); }}>
+                <SelectTrigger className="w-[160px] h-9 bg-secondary/50"><SelectValue placeholder="Empresa" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas empresas</SelectItem>
+                  {(companies.data ?? []).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={selectedProject} onValueChange={(v) => setSelectedProject(v as any)}>
+                <SelectTrigger className="w-[160px] h-9 bg-secondary/50"><SelectValue placeholder="Projeto" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos projetos</SelectItem>
+                  <SelectItem value="none">— Sem projeto —</SelectItem>
+                  {projectsForCompany(selectedCompany !== "all" ? selectedCompany : null).map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[140px] h-9 bg-secondary/50"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="text">Texto / Notas</SelectItem>
+                  <SelectItem value="link">Links externos</SelectItem>
+                  <SelectItem value="file">Arquivos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[150px] h-9 bg-secondary/50"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas categorias</SelectItem>
+                  {allCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <button
+                onClick={() => setFavoritesOnly(v => !v)}
+                className={`h-9 px-2.5 rounded-md border text-xs flex items-center gap-1.5 transition-colors ${favoritesOnly ? "bg-warning/10 border-warning/40 text-warning" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"}`}
+                title="Apenas favoritos"
+              >
+                <Star className={`h-3.5 w-3.5 ${favoritesOnly ? "fill-current" : ""}`} /> Favoritos
+              </button>
+              <button
+                onClick={() => setShowAdvanced(v => !v)}
+                className={`h-9 px-2.5 rounded-md border text-xs flex items-center gap-1.5 ${showAdvanced ? "bg-primary/10 border-primary/40 text-primary" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"}`}
+              >
+                Tags {tagFilter.length > 0 && <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-[10px]">{tagFilter.length}</span>}
+              </button>
+              {hasActiveFilters && (
+                <button onClick={clearAllFilters} className="h-9 px-2.5 rounded-md border border-border bg-secondary/50 text-xs text-muted-foreground hover:text-destructive flex items-center gap-1">
+                  <X className="h-3 w-3" /> Limpar
+                </button>
+              )}
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[150px] h-9 bg-secondary/50"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="text">Texto / Notas</SelectItem>
-                <SelectItem value="link">Links externos</SelectItem>
-                <SelectItem value="file">Arquivos</SelectItem>
-              </SelectContent>
-            </Select>
+
+            {showAdvanced && (
+              <div className="pt-2 border-t border-border/50">
+                {allTags.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground italic px-1">Nenhuma tag cadastrada ainda.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {allTags.map(t => {
+                      const active = tagFilter.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => setTagFilter(s => active ? s.filter(x => x !== t) : [...s, t])}
+                          className={`px-2 py-0.5 rounded-full text-[10px] border transition-colors ${active ? "bg-primary/20 border-primary text-primary" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground hover:border-primary/40"}`}
+                        >
+                          #{t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+              <span>{filteredDocs.length} de {documents.data?.length ?? 0} documento(s)</span>
+              {tagFilter.length > 0 && (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {tagFilter.map(t => (
+                    <span key={t} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                      #{t}
+                      <button onClick={() => setTagFilter(s => s.filter(x => x !== t))} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {filteredDocs.length === 0 ? (
