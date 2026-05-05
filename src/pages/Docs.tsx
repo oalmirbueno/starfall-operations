@@ -64,7 +64,7 @@ export default function Docs() {
 
   // forms
   const [cName, setCName] = useState(""); const [cWebsite, setCWebsite] = useState(""); const [cDesc, setCDesc] = useState("");
-  const [pName, setPName] = useState(""); const [pDesc, setPDesc] = useState(""); const [pCompany, setPCompany] = useState("");
+  const [pName, setPName] = useState(""); const [pDesc, setPDesc] = useState(""); const [pCompany, setPCompany] = useState(""); const [pParent, setPParent] = useState<string>("");
 
   const [dTitle, setDTitle] = useState(""); const [dType, setDType] = useState<DocType>("text");
   const [dCompany, setDCompany] = useState<string>(""); const [dProject, setDProject] = useState<string>("");
