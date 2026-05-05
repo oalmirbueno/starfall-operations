@@ -385,118 +385,118 @@ export default function Docs() {
             ? "lg:col-span-5 xl:col-span-5 2xl:col-span-5"
             : "lg:col-span-9 xl:col-span-9 2xl:col-span-10"
         }`}>
-          <div className="bg-card border border-border rounded-lg p-3 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder='Buscar… (use tag:foo  type:link  company:acme  cat:contrato  fav:true  "frase exata")'
-                  className="pl-8 h-9 bg-secondary/50 font-mono text-xs"
-                />
-              </div>
-              <Select value={selectedCompany} onValueChange={(v) => { setSelectedCompany(v as any); setSelectedProject("all"); }}>
-                <SelectTrigger className="w-[160px] h-9 bg-secondary/50"><SelectValue placeholder="Empresa" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas empresas</SelectItem>
-                  {(companies.data ?? []).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={selectedProject} onValueChange={(v) => setSelectedProject(v as any)}>
-                <SelectTrigger className="w-[160px] h-9 bg-secondary/50"><SelectValue placeholder="Projeto" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas pastas</SelectItem>
-                  <SelectItem value="none">— Sem pasta —</SelectItem>
-                  {projectsForCompany(selectedCompany !== "all" ? selectedCompany : null).map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.parent_id ? "↳ " : ""}{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[140px] h-9 bg-secondary/50"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  <SelectItem value="text">Texto / Notas</SelectItem>
-                  <SelectItem value="link">Links externos</SelectItem>
-                  <SelectItem value="file">Arquivos</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[150px] h-9 bg-secondary/50"><SelectValue placeholder="Categoria" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas categorias</SelectItem>
-                  {allCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <button
-                onClick={() => setFavoritesOnly(v => !v)}
-                className={`h-9 px-2.5 rounded-md border text-xs flex items-center gap-1.5 transition-colors ${favoritesOnly ? "bg-warning/10 border-warning/40 text-warning" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"}`}
-                title="Apenas favoritos"
-              >
-                <Star className={`h-3.5 w-3.5 ${favoritesOnly ? "fill-current" : ""}`} /> Favoritos
-              </button>
-              <button
-                onClick={() => setShowAdvanced(v => !v)}
-                className={`h-9 px-2.5 rounded-md border text-xs flex items-center gap-1.5 ${showAdvanced ? "bg-primary/10 border-primary/40 text-primary" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"}`}
-              >
-                Tags {tagFilter.length > 0 && <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-[10px]">{tagFilter.length}</span>}
-              </button>
-              {hasActiveFilters && (
-                <button onClick={clearAllFilters} className="h-9 px-2.5 rounded-md border border-border bg-secondary/50 text-xs text-muted-foreground hover:text-destructive flex items-center gap-1">
-                  <X className="h-3 w-3" /> Limpar
-                </button>
-              )}
+          <div className="bg-card/60 border border-border/60 rounded-xl p-2 flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar documentos…"
+                className="pl-9 h-9 bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-primary/30 text-sm"
+              />
             </div>
 
-            {showAdvanced && (
-              <div className="pt-2 border-t border-border/50">
-                {allTags.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground italic px-1">Nenhuma tag cadastrada ainda.</p>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {allTags.map(t => {
-                      const active = tagFilter.includes(t);
-                      return (
-                        <button
-                          key={t}
-                          onClick={() => setTagFilter(s => active ? s.filter(x => x !== t) : [...s, t])}
-                          className={`px-2 py-0.5 rounded-full text-[10px] border transition-colors ${active ? "bg-primary/20 border-primary text-primary" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground hover:border-primary/40"}`}
-                        >
-                          #{t}
-                        </button>
-                      );
-                    })}
+            <button
+              onClick={() => setFavoritesOnly(v => !v)}
+              className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${favoritesOnly ? "bg-warning/15 text-warning" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
+              title="Apenas favoritos"
+            >
+              <Star className={`h-4 w-4 ${favoritesOnly ? "fill-current" : ""}`} />
+            </button>
+
+            <Popover open={showAdvanced} onOpenChange={setShowAdvanced}>
+              <PopoverTrigger asChild>
+                <button
+                  className={`h-8 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-colors ${
+                    (typeFilter !== "all" || categoryFilter !== "all" || tagFilter.length > 0)
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                  }`}
+                >
+                  <Layers className="h-3.5 w-3.5" /> Filtros
+                  {(typeFilter !== "all" || categoryFilter !== "all" || tagFilter.length > 0) && (
+                    <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-[10px] leading-none py-0.5">
+                      {(typeFilter !== "all" ? 1 : 0) + (categoryFilter !== "all" ? 1 : 0) + tagFilter.length}
+                    </span>
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 p-3 space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tipo</Label>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="h-8 bg-secondary/50 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os tipos</SelectItem>
+                      <SelectItem value="text">Texto / Notas</SelectItem>
+                      <SelectItem value="link">Links externos</SelectItem>
+                      <SelectItem value="file">Arquivos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</Label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="h-8 bg-secondary/50 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas categorias</SelectItem>
+                      {allCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {allTags.length > 0 && (
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tags</Label>
+                    <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                      {allTags.map(t => {
+                        const active = tagFilter.includes(t);
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => setTagFilter(s => active ? s.filter(x => x !== t) : [...s, t])}
+                            className={`px-2 py-0.5 rounded-full text-[10px] border transition-colors ${active ? "bg-primary/20 border-primary text-primary" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"}`}
+                          >#{t}</button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-              </div>
-            )}
+                {hasActiveFilters && (
+                  <button onClick={clearAllFilters} className="w-full h-8 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 flex items-center justify-center gap-1.5 border border-border">
+                    <X className="h-3 w-3" /> Limpar todos os filtros
+                  </button>
+                )}
+              </PopoverContent>
+            </Popover>
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
-              <span>{filteredDocs.length} de {documents.data?.length ?? 0} documento(s)</span>
-              {tagFilter.length > 0 && (
-                <div className="flex items-center gap-1 flex-wrap">
-                  {tagFilter.map(t => (
-                    <span key={t} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                      #{t}
-                      <button onClick={() => setTagFilter(s => s.filter(x => x !== t))} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
-                    </span>
-                  ))}
-                </div>
-              )}
+            <div className="text-[11px] text-muted-foreground font-mono pl-1">
+              {filteredDocs.length}<span className="text-muted-foreground/50">/{documents.data?.length ?? 0}</span>
             </div>
           </div>
 
-          {filteredDocs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center bg-card border border-border rounded-lg">
-              <FileText className="h-12 w-12 text-muted-foreground/30 mb-4" />
-              <h3 className="text-sm font-medium text-foreground mb-1">Nenhum documento aqui ainda</h3>
-              <p className="text-xs text-muted-foreground mb-4">Crie um documento, link ou anexe um arquivo</p>
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { resetDoc(); setDocDlg(true); }}>
-                <Plus className="h-3.5 w-3.5" /> Novo Documento
-              </Button>
+          {/* Active filter chips (compact) */}
+          {(selectedCompany !== "all" || selectedProject !== "all" || categoryFilter !== "all" || typeFilter !== "all" || tagFilter.length > 0) && (
+            <div className="flex flex-wrap items-center gap-1.5 px-1">
+              {selectedCompany !== "all" && (
+                <FilterChip label={companyById(selectedCompany)?.name ?? ""} icon={<Building2 className="h-2.5 w-2.5" />} onClear={() => { setSelectedCompany("all"); setSelectedProject("all"); }} />
+              )}
+              {selectedProject !== "all" && selectedProject !== "none" && (
+                <FilterChip label={projectById(selectedProject)?.name ?? ""} icon={<Folder className="h-2.5 w-2.5" />} onClear={() => setSelectedProject("all")} />
+              )}
+              {selectedProject === "none" && (
+                <FilterChip label="Sem pasta" icon={<Folder className="h-2.5 w-2.5" />} onClear={() => setSelectedProject("all")} />
+              )}
+              {categoryFilter !== "all" && categoryFilter !== "__none__" && (
+                <FilterChip label={categoryFilter} icon={<Tag className="h-2.5 w-2.5" />} onClear={() => setCategoryFilter("all")} />
+              )}
+              {typeFilter !== "all" && (
+                <FilterChip label={typeFilter} onClear={() => setTypeFilter("all")} />
+              )}
+              {tagFilter.map(t => (
+                <FilterChip key={t} label={`#${t}`} onClear={() => setTagFilter(s => s.filter(x => x !== t))} />
+              ))}
             </div>
-          ) : (
+          )}
             <>
               {/* Group toolbar */}
               <div className="flex items-center justify-between gap-2 px-1">
