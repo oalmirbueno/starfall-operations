@@ -221,10 +221,32 @@ export default function Credentials() {
     const normalize = (s: string) =>
       s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
+    // TLDs compostos comuns (ex: com.br, co.uk) — para extrair corretamente o SLD
+    const COMPOUND_TLDS = new Set([
+      "com.br","net.br","org.br","gov.br","edu.br",
+      "co.uk","org.uk","ac.uk","gov.uk",
+      "com.mx","com.ar","com.au","co.jp","co.in","co.kr","co.za","com.co",
+      "com.pt","com.es","com.tr","com.sg","com.hk","com.tw","com.cn",
+    ]);
+
+    // Retorna o SLD (segundo nível) do host — o nome real da marca,
+    // ignorando subdomínios (app., mail., my., accounts., etc.) e o TLD.
+    // Ex: "myaccount.google.com" -> "google"; "painel.aceleriq.com.br" -> "aceleriq".
+    const sldFromHost = (host: string): string | null => {
+      const parts = host.split(".").map(normalize).filter(Boolean);
+      if (parts.length < 2) return parts[0] ?? null;
+      const last2 = parts.slice(-2).join(".");
+      const idx = parts.length >= 3 && COMPOUND_TLDS.has(last2)
+        ? parts.length - 3
+        : parts.length - 2;
+      const sld = parts[idx];
+      if (!sld || STOP.has(sld) || /^\d+$/.test(sld)) return null;
+      return sld;
+    };
+
     const tokensFromHost = (host: string): string[] => {
-      const parts = host.split(".").map(normalize);
-      // remove TLD-like and stop tokens
-      return parts.filter(p => p && !STOP.has(p) && !/^\d+$/.test(p));
+      const sld = sldFromHost(host);
+      return sld ? [sld] : [];
     };
 
     const tokensFromText = (text: string): string[] =>
