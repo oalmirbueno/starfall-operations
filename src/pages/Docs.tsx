@@ -59,6 +59,7 @@ export default function Docs() {
   const [dFavorite, setDFavorite] = useState(false);
   const [dFile, setDFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const resetDoc = () => {
     setEditingDoc(null); setDTitle(""); setDType("text");
