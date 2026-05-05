@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, FolderKanban, FileText, Link2, Paperclip, Plus, Search, Star,
   Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, FolderOpen, BookOpen, Globe, Eye, X,
-  History, RotateCcw, User, Tag, Layers
+  History, RotateCcw, User, Tag, Layers, Maximize2, Minimize2
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DocsSidebar } from "@/components/DocsSidebar";
