@@ -933,15 +933,14 @@ export default function Docs() {
           );
         }
 
-        // Dock panel: fixed right side via portal-like fixed positioning fallback —
-        // but we render it inline as the right column of the grid (handled below).
+        // Dock panel — sticky right side, fills viewport height
         return (
-          <PreviewDockPortal>
-            <div className="bg-card border border-border rounded-lg overflow-hidden flex flex-col h-[calc(100vh-9rem)] sticky top-4">
+          <div className="hidden lg:block fixed top-20 right-4 bottom-4 w-[44%] xl:w-[44%] 2xl:w-[48%] z-30 max-w-[900px]">
+            <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden flex flex-col h-full">
               {Header}
               {Body}
             </div>
-          </PreviewDockPortal>
+          </div>
         );
       })()}
     </div>
