@@ -239,7 +239,7 @@ export default function Docs() {
         </aside>
 
         {/* Main */}
-        <main className="col-span-12 md:col-span-9 space-y-4">
+        <main className="col-span-12 lg:col-span-10 space-y-4">
           <div className="flex flex-wrap items-center gap-2 p-3 bg-card border border-border rounded-lg">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
