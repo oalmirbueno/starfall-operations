@@ -497,6 +497,17 @@ export default function Docs() {
               ))}
             </div>
           )}
+
+          {filteredDocs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center bg-card/40 border border-dashed border-border rounded-xl">
+              <FileText className="h-10 w-10 text-muted-foreground/30 mb-3" />
+              <h3 className="text-sm font-medium text-foreground mb-1">Nenhum documento aqui</h3>
+              <p className="text-xs text-muted-foreground mb-4">Crie um documento, link ou anexe um arquivo</p>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { resetDoc(); setDocDlg(true); }}>
+                <Plus className="h-3.5 w-3.5" /> Novo Documento
+              </Button>
+            </div>
+          ) : (
             <>
               {/* Group toolbar */}
               <div className="flex items-center justify-between gap-2 px-1">
