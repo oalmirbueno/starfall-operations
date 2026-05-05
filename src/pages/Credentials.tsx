@@ -230,58 +230,65 @@ export default function Credentials() {
     const tokensFromText = (text: string): string[] =>
       normalize(text).split(/[^a-z0-9]+/).filter(t => t && t.length >= 3 && !STOP.has(t));
 
-    const findBrandStem = (c: Credential): { key: string; label: string } => {
-      const haystackParts: string[] = [];
-      const hostTokens: string[] = [];
+    // Domínios de provedores de email que NÃO devem definir a marca do serviço.
+    // O login ser foo@gmail.com não significa que o serviço é "Google".
+    const EMAIL_PROVIDERS = new Set([
+      "gmail","googlemail","outlook","hotmail","live","msn","yahoo","ymail","icloud","me","mac",
+      "proton","protonmail","pm","tutanota","aol","gmx","mail","zoho","yandex","fastmail","duck",
+      "uol","bol","terra","ig","r7","globo","oi",
+    ]);
 
-      const collectFromText = (txt: string | null) => {
-        if (!txt) return;
-        haystackParts.push(txt);
+    const findBrandStem = (c: Credential): { key: string; label: string } => {
+      // 1) URL explícita em provider/account/notes/recovery (a fonte mais confiável)
+      const urlSourceTexts = [c.provider, c.account, c.notes, c.recovery_info];
+      const urlHostTokens: string[] = [];
+      for (const txt of urlSourceTexts) {
+        if (!txt) continue;
         const matches = txt.match(URL_REGEX) ?? [];
         for (const m of matches) {
           const u = normalizeUrl(m);
           const host = u ? getDomain(u) : null;
-          if (host) hostTokens.push(...tokensFromHost(host));
+          if (host) urlHostTokens.push(...tokensFromHost(host));
         }
-      };
+      }
 
-      collectFromText(c.provider);
-      collectFromText(c.account);
-      collectFromText(c.notes);
-      collectFromText(c.recovery_info);
-      // login email domain
-      const emailDomain = c.login?.match(/@([^\s]+)/)?.[1];
-      if (emailDomain) hostTokens.push(...tokensFromHost(emailDomain));
+      // 2) Tokens vindos do NOME do provider e do account (sem login)
+      const nameTokens = [
+        ...tokensFromText(c.provider ?? ""),
+        ...tokensFromText(c.account ?? ""),
+      ];
 
-      const haystack = haystackParts.join(" ");
-
-      // 1) known brand alias wins
+      // 3) brand aliases — só procura em provider/account/notes/recovery + URLs (NUNCA no login)
+      const haystack = [c.provider, c.account, c.notes, c.recovery_info]
+        .filter(Boolean).join(" ");
       for (const [stem, re] of Object.entries(BRAND_ALIASES)) {
-        if (re.test(haystack) || hostTokens.some(t => re.test(t))) {
+        if (re.test(haystack) || urlHostTokens.some(t => re.test(t)) || nameTokens.some(t => re.test(t))) {
           return { key: stem, label: stem.charAt(0).toUpperCase() + stem.slice(1) };
         }
       }
 
-      // 2) token that appears both in host AND in provider/account text
-      const textTokens = new Set([
-        ...tokensFromText(c.provider ?? ""),
-        ...tokensFromText(c.account ?? ""),
-      ]);
-      const overlap = hostTokens.find(t => textTokens.has(t));
-      if (overlap) return { key: overlap, label: overlap };
-
-      // 3) longest meaningful host token (skip generic stuff)
-      if (hostTokens.length) {
-        const best = [...hostTokens].sort((a, b) => b.length - a.length)[0];
+      // 4) host token da URL (mais confiável que o nome)
+      if (urlHostTokens.length) {
+        const best = [...urlHostTokens].sort((a, b) => b.length - a.length)[0];
         return { key: best, label: best };
       }
 
-      // 4) provider-name fallback (cleaned)
-      const provTokens = tokensFromText(c.provider ?? "");
-      if (provTokens.length) {
-        const best = provTokens.sort((a, b) => b.length - a.length)[0];
+      // 5) primeiro token significativo do NOME do provider
+      if (nameTokens.length) {
+        const best = nameTokens.sort((a, b) => b.length - a.length)[0];
         return { key: best, label: best };
       }
+
+      // 6) último recurso: domínio do email do login — mas SÓ se não for provedor genérico
+      const emailDomain = c.login?.match(/@([^\s]+)/)?.[1];
+      if (emailDomain) {
+        const tokens = tokensFromHost(emailDomain).filter(t => !EMAIL_PROVIDERS.has(t));
+        if (tokens.length) {
+          const best = tokens.sort((a, b) => b.length - a.length)[0];
+          return { key: best, label: best };
+        }
+      }
+
       const k = (c.provider ?? "outros").toLowerCase().trim() || "outros";
       return { key: k, label: c.provider ?? "Outros" };
     };
