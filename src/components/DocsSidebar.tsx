@@ -145,7 +145,7 @@ export function DocsSidebar({
             onClick={() => setFavoritesOnly(!favoritesOnly)}
           />
           <SidebarRow
-            icon={<Inbox className="h-3.5 w-3.5" />} label="Sem projeto" count={noProjectCount}
+            icon={<Inbox className="h-3.5 w-3.5" />} label="Sem pasta" count={noProjectCount}
             active={selectedProject === "none"}
             onClick={() => setSelectedProject(selectedProject === "none" ? "all" : "none")}
           />
