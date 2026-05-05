@@ -98,7 +98,8 @@ export default function Docs() {
     setEditingDoc(d); setDTitle(d.title); setDType(d.doc_type);
     setDCompany(d.company_id ?? ""); setDProject(d.project_id ?? "");
     setDCategory(d.category ?? ""); setDContent(d.content ?? ""); setDUrl(d.url ?? "");
-    setDTags((d.tags ?? []).join(", ")); setDFavorite(d.favorite); setDFile(null);
+    setDTags((d.tags ?? []).join(", ")); setDFavorite(d.favorite);
+    setDFile(null); setUploadPct(0); setUploadStatus("idle"); setUploadError(null);
     setDocDlg(true);
   };
 
