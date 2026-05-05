@@ -371,7 +371,11 @@ export default function Docs() {
 
 
         {/* Main */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 2xl:col-span-10 space-y-4">
+        <main className={`col-span-12 space-y-4 ${
+          previewDoc && previewMode === "dock"
+            ? "lg:col-span-5 xl:col-span-5 2xl:col-span-5"
+            : "lg:col-span-9 xl:col-span-9 2xl:col-span-10"
+        }`}>
           <div className="bg-card border border-border rounded-lg p-3 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative flex-1 min-w-[220px]">
