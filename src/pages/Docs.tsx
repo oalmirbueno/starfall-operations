@@ -75,6 +75,7 @@ export default function Docs() {
     setUploadPct(0);
     setUploadError(null);
     setUploadStatus(f ? "queued" : "idle");
+    if (f) setDType("file");
   };
 
   // Preview state
