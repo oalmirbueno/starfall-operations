@@ -154,8 +154,32 @@ export function useDocs() {
     onSuccess: () => { inv(); toast.success("Documento salvo"); },
     onError: (e: any) => toast.error(e.message),
   });
+  const snapshotVersion = async (doc: DocItem, changeNote?: string) => {
+    if (!userId) return;
+    // pega próximo número
+    const { data: last } = await supabase
+      .from("document_versions").select("version_number")
+      .eq("document_id", doc.id).order("version_number", { ascending: false }).limit(1).maybeSingle();
+    const nextNum = ((last as any)?.version_number ?? 0) + 1;
+    // autor
+    const { data: prof } = await supabase.from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
+    await supabase.from("document_versions").insert({
+      document_id: doc.id, user_id: userId, version_number: nextNum,
+      title: doc.title, doc_type: doc.doc_type, category: doc.category,
+      content: doc.content, url: doc.url,
+      file_path: doc.file_path, file_name: doc.file_name, file_mime: doc.file_mime, file_size: doc.file_size,
+      tags: doc.tags ?? [], company_id: doc.company_id, project_id: doc.project_id,
+      change_note: changeNote ?? null,
+      author_name: (prof as any)?.display_name ?? null,
+    });
+  };
+
   const updateDocument = useMutation({
-    mutationFn: async ({ id, ...patch }: Partial<DocItem> & { id: string }) => {
+    mutationFn: async ({ id, change_note, _skipSnapshot, ...patch }: Partial<DocItem> & { id: string; change_note?: string; _skipSnapshot?: boolean }) => {
+      if (!_skipSnapshot) {
+        const { data: current } = await supabase.from("documents").select("*").eq("id", id).maybeSingle();
+        if (current) await snapshotVersion(current as DocItem, change_note);
+      }
       const { data, error } = await supabase.from("documents").update(patch).eq("id", id).select().single();
       if (error) throw error; return data as DocItem;
     },
