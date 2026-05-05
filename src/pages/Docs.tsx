@@ -588,7 +588,7 @@ export default function Docs() {
                             </span>
                           </button>
                           {!collapsed && (
-                            <div className="p-3 pt-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 border-t border-border/50">
+                            <div className={`p-3 pt-2 ${gridCls} border-t border-border/50`}>
                               {g.items.map(d => renderDocCard(d))}
                             </div>
                           )}
