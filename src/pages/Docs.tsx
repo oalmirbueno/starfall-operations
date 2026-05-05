@@ -90,6 +90,7 @@ export default function Docs() {
   const [previewDoc, setPreviewDoc] = useState<DocItem | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"dock" | "modal">("dock");
 
   // History state
   const [showHistory, setShowHistory] = useState(false);
