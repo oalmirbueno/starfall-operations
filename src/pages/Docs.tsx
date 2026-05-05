@@ -51,6 +51,11 @@ export default function Docs() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [groupBy, setGroupBy] = useState<"category" | "project" | "company" | "none">("category");
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (k: string) => setCollapsedGroups(s => {
+    const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n;
+  });
 
   const [companyDlg, setCompanyDlg] = useState(false);
   const [projectDlg, setProjectDlg] = useState(false);
