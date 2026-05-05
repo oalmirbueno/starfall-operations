@@ -525,9 +525,13 @@ export default function Docs() {
               </div>
 
               {(() => {
+                const dockOpen = !!previewDoc && previewMode === "dock";
+                const gridCls = dockOpen
+                  ? "grid grid-cols-1 xl:grid-cols-2 gap-3"
+                  : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3";
                 if (groupBy === "none") {
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+                    <div className={gridCls}>
                       {filteredDocs.map(d => renderDocCard(d))}
                     </div>
                   );
