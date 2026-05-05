@@ -248,11 +248,39 @@ export function useDocs() {
     return data?.signedUrl ?? null;
   };
 
+  const listVersions = async (documentId: string): Promise<DocVersion[]> => {
+    const { data, error } = await supabase
+      .from("document_versions").select("*")
+      .eq("document_id", documentId)
+      .order("version_number", { ascending: false });
+    if (error) { toast.error(error.message); return []; }
+    return (data ?? []) as DocVersion[];
+  };
+
+  const restoreVersion = useMutation({
+    mutationFn: async ({ documentId, version, currentDoc }: { documentId: string; version: DocVersion; currentDoc: DocItem }) => {
+      // snapshot do estado atual antes de restaurar
+      await snapshotVersion(currentDoc, `Antes de restaurar v${version.version_number}`);
+      const patch = {
+        title: version.title, doc_type: version.doc_type, category: version.category,
+        content: version.content, url: version.url,
+        file_path: version.file_path, file_name: version.file_name,
+        file_mime: version.file_mime, file_size: version.file_size,
+        tags: version.tags ?? [], company_id: version.company_id, project_id: version.project_id,
+      };
+      const { data, error } = await supabase.from("documents").update(patch).eq("id", documentId).select().single();
+      if (error) throw error; return data as DocItem;
+    },
+    onSuccess: () => { inv(); toast.success("Versão restaurada"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return {
     companies, projects, documents,
     createCompany, updateCompany, removeCompany,
     createProject, updateProject, removeProject,
     createDocument, updateDocument, removeDocument,
     uploadFile, getFileUrl,
+    listVersions, restoreVersion,
   };
 }
