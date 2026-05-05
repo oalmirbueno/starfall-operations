@@ -457,26 +457,69 @@ export default function Docs() {
               <div className="space-y-1.5">
                 <Label className="text-xs">{editingDoc?.file_path ? "Substituir arquivo (opcional)" : "Arquivo *"}</Label>
                 <div
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragOver={(e) => { e.preventDefault(); if (!uploading) setDragOver(true); }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={(e) => {
                     e.preventDefault(); setDragOver(false);
-                    const f = e.dataTransfer.files?.[0]; if (f) setDFile(f);
+                    if (uploading) return;
+                    const f = e.dataTransfer.files?.[0]; if (f) pickFile(f);
                   }}
-                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${dragOver ? "border-primary bg-primary/5" : "border-border bg-secondary/30 hover:border-primary/50"}`}
+                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                    uploadStatus === "failed" ? "border-destructive/60 bg-destructive/5"
+                    : uploadStatus === "done" ? "border-primary/60 bg-primary/5"
+                    : dragOver ? "border-primary bg-primary/5"
+                    : "border-border bg-secondary/30 hover:border-primary/50"
+                  }`}
                 >
                   <input
                     type="file"
-                    onChange={e => setDFile(e.target.files?.[0] ?? null)}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={e => pickFile(e.target.files?.[0] ?? null)}
+                    className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                     accept="*/*"
+                    disabled={uploading}
                   />
                   <Paperclip className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                   {dFile ? (
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{dFile.name}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{fmtSize(dFile.size)} · {dFile.type || "tipo desconhecido"}</p>
-                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDFile(null); }} className="text-[11px] text-destructive hover:underline mt-1">Remover</button>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-sm font-medium text-foreground truncate">{dFile.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{fmtSize(dFile.size)} · {dFile.type || "tipo desconhecido"}</p>
+                      </div>
+                      {uploadStatus !== "idle" && (
+                        <div className="space-y-1">
+                          <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-200 ${
+                                uploadStatus === "failed" ? "bg-destructive"
+                                : uploadStatus === "done" ? "bg-primary"
+                                : "bg-primary/80"
+                              }`}
+                              style={{ width: `${uploadStatus === "queued" ? 0 : uploadPct}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className={
+                              uploadStatus === "failed" ? "text-destructive"
+                              : uploadStatus === "done" ? "text-primary"
+                              : "text-muted-foreground"
+                            }>
+                              {uploadStatus === "queued" && "⏳ Na fila"}
+                              {uploadStatus === "uploading" && `⬆ Enviando… ${uploadPct}%`}
+                              {uploadStatus === "done" && "✓ Concluído"}
+                              {uploadStatus === "failed" && `✗ Falhou${uploadError ? `: ${uploadError}` : ""}`}
+                            </span>
+                            {!uploading && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); pickFile(null); }}
+                                className="text-destructive hover:underline"
+                              >
+                                {uploadStatus === "failed" ? "Tentar outro" : "Remover"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div>
