@@ -24,6 +24,7 @@ const items = [
   { title: "Oportunidades", url: "/oportunidades", icon: Lightbulb },
   { title: "Ideias", url: "/ideias", icon: StickyNote },
   { title: "Links Úteis", url: "/links", icon: Link2 },
+  { title: "Documentação", url: "/documentacao", icon: BookOpen },
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
