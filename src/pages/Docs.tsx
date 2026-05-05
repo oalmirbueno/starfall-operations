@@ -285,6 +285,55 @@ export default function Docs() {
   const docCountByProject = (pid: string) =>
     (documents.data ?? []).filter(d => d.project_id === pid).length;
 
+  const renderDocCard = (d: DocItem) => {
+    const company = companyById(d.company_id);
+    const project = projectById(d.project_id);
+    return (
+      <div key={d.id} className="bg-card border border-border rounded-lg p-3 card-hover flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <button onClick={() => openPreview(d)} className="flex items-start gap-2.5 min-w-0 text-left flex-1">
+            <DocThumbnail doc={d} size="md" />
+            <span className="text-sm font-medium text-foreground hover:text-primary transition-colors line-clamp-2 leading-snug pt-0.5" title={d.title}>{d.title}</span>
+          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button onClick={() => openPreview(d)} className="p-1 text-muted-foreground hover:text-primary" title="Visualizar"><Eye className="h-3 w-3" /></button>
+            <button onClick={() => updateDocument.mutate({ id: d.id, favorite: !d.favorite })} className={`p-1 ${d.favorite ? "text-warning" : "text-muted-foreground hover:text-warning"}`}>
+              <Star className={`h-3 w-3 ${d.favorite ? "fill-current" : ""}`} />
+            </button>
+            <button onClick={() => openEditDoc(d)} className="p-1 text-muted-foreground hover:text-primary"><Edit className="h-3 w-3" /></button>
+            <button onClick={() => { if (confirm("Remover este documento?")) removeDocument.mutate(d); }} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+          </div>
+        </div>
+
+        <div className="flex items-center flex-wrap gap-1 text-[10px] text-muted-foreground">
+          {company && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><Building2 className="h-2.5 w-2.5" />{company.name}</span>}
+          {project && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><FolderKanban className="h-2.5 w-2.5" />{project.name}</span>}
+          {d.category && <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">{d.category}</span>}
+        </div>
+
+        {d.doc_type === "text" && d.content && (
+          <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">{d.content}</p>
+        )}
+        {d.doc_type === "link" && d.url && (
+          <a href={d.url.startsWith("http") ? d.url : `https://${d.url}`} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline truncate flex items-center gap-1">
+            <Globe className="h-3 w-3" />{getDomain(d.url) ?? d.url}<ExternalLink className="h-2.5 w-2.5" />
+          </a>
+        )}
+        {d.doc_type === "file" && d.file_path && (
+          <button onClick={() => openFile(d)} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+            <Download className="h-3 w-3" />{d.file_name} <span className="text-muted-foreground">({fmtSize(d.file_size)})</span>
+          </button>
+        )}
+
+        {d.tags?.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {d.tags.map(t => <span key={t} className="text-[10px] bg-secondary/50 px-1.5 py-0.5 rounded text-muted-foreground">#{t}</span>)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in w-full max-w-none">
       <div className="flex items-center justify-between">
