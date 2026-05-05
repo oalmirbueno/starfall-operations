@@ -432,14 +432,12 @@ export default function Docs() {
               {filteredDocs.map(d => {
                 const company = companyById(d.company_id);
                 const project = projectById(d.project_id);
-                const TypeIcon = d.doc_type === "link" ? Link2 : d.doc_type === "file" ? Paperclip : FileText;
-                const fav = d.doc_type === "link" ? favicon(d.url) : null;
                 return (
-                  <div key={d.id} className="bg-card border border-border rounded-lg p-4 card-hover flex flex-col gap-2">
+                  <div key={d.id} className="bg-card border border-border rounded-lg p-3 card-hover flex flex-col gap-2">
                     <div className="flex items-start justify-between gap-2">
-                      <button onClick={() => openPreview(d)} className="flex items-center gap-2 min-w-0 text-left flex-1">
-                        {fav ? <img src={fav} alt="" className="h-4 w-4 rounded-sm" onError={(e) => (e.currentTarget.style.display = "none")} /> : <TypeIcon className="h-4 w-4 text-primary shrink-0" />}
-                        <span className="text-sm font-medium text-foreground hover:text-primary transition-colors line-clamp-2 leading-snug" title={d.title}>{d.title}</span>
+                      <button onClick={() => openPreview(d)} className="flex items-start gap-2.5 min-w-0 text-left flex-1">
+                        <DocThumbnail doc={d} size="md" />
+                        <span className="text-sm font-medium text-foreground hover:text-primary transition-colors line-clamp-2 leading-snug pt-0.5" title={d.title}>{d.title}</span>
                       </button>
                       <div className="flex items-center gap-1 shrink-0">
                         <button onClick={() => openPreview(d)} className="p-1 text-muted-foreground hover:text-primary" title="Visualizar"><Eye className="h-3 w-3" /></button>
