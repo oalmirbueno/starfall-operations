@@ -59,7 +59,17 @@ export default function Docs() {
   const [dFavorite, setDFavorite] = useState(false);
   const [dFile, setDFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "queued" | "uploading" | "done" | "failed">("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  const pickFile = (f: File | null) => {
+    setDFile(f);
+    setUploadPct(0);
+    setUploadError(null);
+    setUploadStatus(f ? "queued" : "idle");
+  };
 
   // Preview state
   const [previewDoc, setPreviewDoc] = useState<DocItem | null>(null);
