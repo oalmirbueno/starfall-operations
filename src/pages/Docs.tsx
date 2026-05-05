@@ -510,38 +510,36 @@ export default function Docs() {
             </div>
           ) : (
             <>
-              {/* Group toolbar */}
+              {/* Group toolbar — minimal */}
               <div className="flex items-center justify-between gap-2 px-1">
-                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <Layers className="h-3 w-3" /> Agrupar por:
-                  {(["category","project","company","none"] as const).map(g => (
+                <div className="inline-flex items-center bg-secondary/40 rounded-lg p-0.5 text-[11px]">
+                  {(["project","category","company","none"] as const).map(g => (
                     <button key={g} onClick={() => setGroupBy(g)}
-                      className={`px-2 py-0.5 rounded-md text-[11px] transition-colors ${
-                        groupBy === g ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      className={`px-2.5 py-1 rounded-md transition-colors ${
+                        groupBy === g ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                       }`}>
-                      {g === "category" ? "Categoria" : g === "project" ? "Pasta" : g === "company" ? "Empresa" : "Nenhum"}
+                      {g === "category" ? "Categoria" : g === "project" ? "Pasta" : g === "company" ? "Empresa" : "Lista"}
                     </button>
                   ))}
                 </div>
                 {groupBy !== "none" && (
-                  <div className="flex items-center gap-1 text-[10px]">
-                    <button onClick={() => setCollapsedGroups(new Set())}
-                      className="text-muted-foreground hover:text-primary px-1.5 py-0.5">Expandir todas</button>
-                    <span className="text-border">|</span>
-                    <button
-                      onClick={() => {
-                        const keys = new Set<string>();
-                        filteredDocs.forEach(d => {
-                          let k = "__none__";
-                          if (groupBy === "category") k = d.category ?? "__none__";
-                          else if (groupBy === "project") k = d.project_id ?? "__none__";
-                          else if (groupBy === "company") k = d.company_id ?? "__none__";
-                          keys.add(k);
-                        });
-                        setCollapsedGroups(keys);
-                      }}
-                      className="text-muted-foreground hover:text-primary px-1.5 py-0.5">Recolher todas</button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      if (collapsedGroups.size > 0) { setCollapsedGroups(new Set()); return; }
+                      const keys = new Set<string>();
+                      filteredDocs.forEach(d => {
+                        let k = "__none__";
+                        if (groupBy === "category") k = d.category ?? "__none__";
+                        else if (groupBy === "project") k = d.project_id ?? "__none__";
+                        else if (groupBy === "company") k = d.company_id ?? "__none__";
+                        keys.add(k);
+                      });
+                      setCollapsedGroups(keys);
+                    }}
+                    className="text-[10px] text-muted-foreground hover:text-primary px-2"
+                  >
+                    {collapsedGroups.size > 0 ? "Expandir todas" : "Recolher todas"}
+                  </button>
                 )}
               </div>
 
