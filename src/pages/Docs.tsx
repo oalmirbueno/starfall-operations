@@ -130,9 +130,19 @@ export default function Docs() {
     if (dType === "file" && dFile) {
       try {
         setUploading(true);
-        const u = await uploadFile(dFile);
+        setUploadStatus("uploading");
+        setUploadError(null);
+        setUploadPct(0);
+        const u = await uploadFile(dFile, (pct) => setUploadPct(pct));
         fileMeta = { file_path: u.path, file_name: u.name, file_mime: u.mime, file_size: u.size };
-      } catch (e: any) { toast.error("Erro no upload: " + e.message); setUploading(false); return; }
+        setUploadStatus("done");
+      } catch (e: any) {
+        setUploadStatus("failed");
+        setUploadError(e?.message || "Erro desconhecido");
+        toast.error("Erro no upload: " + (e?.message || ""));
+        setUploading(false);
+        return;
+      }
       setUploading(false);
     }
 
