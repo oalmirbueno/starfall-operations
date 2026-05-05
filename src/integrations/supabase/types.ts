@@ -410,6 +410,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          parent_id: string | null
           position: number
           status: string
           updated_at: string
@@ -422,6 +423,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          parent_id?: string | null
           position?: number
           status?: string
           updated_at?: string
@@ -434,6 +436,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          parent_id?: string | null
           position?: number
           status?: string
           updated_at?: string
@@ -445,6 +448,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doc_projects_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "doc_projects"
             referencedColumns: ["id"]
           },
         ]

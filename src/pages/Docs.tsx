@@ -64,7 +64,7 @@ export default function Docs() {
 
   // forms
   const [cName, setCName] = useState(""); const [cWebsite, setCWebsite] = useState(""); const [cDesc, setCDesc] = useState("");
-  const [pName, setPName] = useState(""); const [pDesc, setPDesc] = useState(""); const [pCompany, setPCompany] = useState("");
+  const [pName, setPName] = useState(""); const [pDesc, setPDesc] = useState(""); const [pCompany, setPCompany] = useState(""); const [pParent, setPParent] = useState<string>("");
 
   const [dTitle, setDTitle] = useState(""); const [dType, setDType] = useState<DocType>("text");
   const [dCompany, setDCompany] = useState<string>(""); const [dProject, setDProject] = useState<string>("");
@@ -346,8 +346,8 @@ export default function Docs() {
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setCName(""); setCWebsite(""); setCDesc(""); setCompanyDlg(true); }}>
             <Building2 className="h-3.5 w-3.5" /> Nova Empresa
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setPName(""); setPDesc(""); setPCompany(selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")); setProjectDlg(true); }} disabled={!companies.data?.length}>
-            <FolderKanban className="h-3.5 w-3.5" /> Novo Projeto
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setPName(""); setPDesc(""); setPParent(""); setPCompany(selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")); setProjectDlg(true); }} disabled={!companies.data?.length}>
+            <FolderKanban className="h-3.5 w-3.5" /> Nova Pasta
           </Button>
           <Button size="sm" className="gap-1.5" onClick={() => { resetDoc(); setDocDlg(true); }}>
             <Plus className="h-3.5 w-3.5" /> Novo Documento
@@ -370,7 +370,12 @@ export default function Docs() {
           selectedProject={selectedProject}
           setSelectedProject={setSelectedProject}
           allCategories={allCategories}
-          onNewProject={() => setProjectDlg(true)}
+          onNewProject={(parentId, companyId) => {
+            setPName(""); setPDesc("");
+            setPCompany(companyId ?? (selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")));
+            setPParent(parentId ?? "");
+            setProjectDlg(true);
+          }}
         />
 
 
@@ -401,10 +406,10 @@ export default function Docs() {
               <Select value={selectedProject} onValueChange={(v) => setSelectedProject(v as any)}>
                 <SelectTrigger className="w-[160px] h-9 bg-secondary/50"><SelectValue placeholder="Projeto" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos projetos</SelectItem>
-                  <SelectItem value="none">— Sem projeto —</SelectItem>
+                  <SelectItem value="all">Todas pastas</SelectItem>
+                  <SelectItem value="none">— Sem pasta —</SelectItem>
                   {projectsForCompany(selectedCompany !== "all" ? selectedCompany : null).map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{p.parent_id ? "↳ " : ""}{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -502,7 +507,7 @@ export default function Docs() {
                       className={`px-2 py-0.5 rounded-md text-[11px] transition-colors ${
                         groupBy === g ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                       }`}>
-                      {g === "category" ? "Categoria" : g === "project" ? "Projeto" : g === "company" ? "Empresa" : "Nenhum"}
+                      {g === "category" ? "Categoria" : g === "project" ? "Pasta" : g === "company" ? "Empresa" : "Nenhum"}
                     </button>
                   ))}
                 </div>
@@ -623,16 +628,28 @@ export default function Docs() {
         </DialogContent>
       </Dialog>
 
-      {/* Project dialog */}
+      {/* Project (Folder) dialog */}
       <Dialog open={projectDlg} onOpenChange={setProjectDlg}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Novo Projeto</DialogTitle><DialogDescription>Vincule a uma empresa.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>{pParent ? "Nova Sub-pasta" : "Nova Pasta"}</DialogTitle><DialogDescription>Pastas organizam documentos dentro de uma empresa. Você pode criar sub-pastas dentro de outra pasta.</DialogDescription></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Empresa *</Label>
-              <Select value={pCompany} onValueChange={setPCompany}>
+              <Select value={pCompany} onValueChange={(v) => { setPCompany(v); setPParent(""); }}>
                 <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>{companies.data?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Dentro de (opcional)</Label>
+              <Select value={pParent || "none"} onValueChange={v => setPParent(v === "none" ? "" : v)} disabled={!pCompany}>
+                <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Pasta-pai" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Raiz da empresa —</SelectItem>
+                  {projectsForCompany(pCompany || null).filter(p => !p.parent_id).map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5"><Label className="text-xs">Nome *</Label><Input value={pName} onChange={e => setPName(e.target.value)} className="bg-secondary/50" /></div>
@@ -640,7 +657,7 @@ export default function Docs() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setProjectDlg(false)}>Cancelar</Button>
-            <Button onClick={async () => { if (!pName.trim() || !pCompany) { toast.error("Empresa e nome obrigatórios"); return; } await createProject.mutateAsync({ company_id: pCompany, name: pName.trim(), description: pDesc || null }); setProjectDlg(false); }}>Criar</Button>
+            <Button onClick={async () => { if (!pName.trim() || !pCompany) { toast.error("Empresa e nome obrigatórios"); return; } await createProject.mutateAsync({ company_id: pCompany, name: pName.trim(), description: pDesc || null, parent_id: pParent || null }); setProjectDlg(false); }}>Criar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
