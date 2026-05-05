@@ -406,10 +406,10 @@ export default function Docs() {
               <Select value={selectedProject} onValueChange={(v) => setSelectedProject(v as any)}>
                 <SelectTrigger className="w-[160px] h-9 bg-secondary/50"><SelectValue placeholder="Projeto" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos projetos</SelectItem>
-                  <SelectItem value="none">— Sem projeto —</SelectItem>
+                  <SelectItem value="all">Todas pastas</SelectItem>
+                  <SelectItem value="none">— Sem pasta —</SelectItem>
                   {projectsForCompany(selectedCompany !== "all" ? selectedCompany : null).map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{p.parent_id ? "↳ " : ""}{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
