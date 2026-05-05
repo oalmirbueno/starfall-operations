@@ -947,12 +947,4 @@ export default function Docs() {
   );
 }
 
-/** Renders preview into the right column of the docs grid via a teleport div. */
-function PreviewDockPortal({ children }: { children: React.ReactNode }) {
-  return (
-    <div id="docs-preview-dock" className="contents">
-      {children}
-    </div>
-  );
-}
 
