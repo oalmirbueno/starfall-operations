@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useDocs, Company, DocProject, DocItem, DocType } from "@/hooks/useDocs";
+import { useDocs, Company, DocProject, DocItem, DocType, DocVersion } from "@/hooks/useDocs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, FolderKanban, FileText, Link2, Paperclip, Plus, Search, Star,
-  Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, BookOpen, Globe, Eye, X
+  Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, BookOpen, Globe, Eye, X,
+  History, RotateCcw, User
 } from "lucide-react";
 import { toast } from "sonner";
 
