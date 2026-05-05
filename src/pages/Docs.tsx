@@ -82,15 +82,37 @@ export default function Docs() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // History state
+  const [showHistory, setShowHistory] = useState(false);
+  const [versions, setVersions] = useState<DocVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+
+  const loadVersions = async (docId: string) => {
+    setVersionsLoading(true);
+    const v = await listVersions(docId);
+    setVersions(v); setVersionsLoading(false);
+  };
+
   const openPreview = async (d: DocItem) => {
-    setPreviewDoc(d); setPreviewUrl(null);
+    setPreviewDoc(d); setPreviewUrl(null); setShowHistory(false); setVersions([]);
     if (d.doc_type === "file" && d.file_path) {
       setPreviewLoading(true);
       const url = await getFileUrl(d.file_path);
       setPreviewUrl(url); setPreviewLoading(false);
     }
   };
-  const closePreview = () => { setPreviewDoc(null); setPreviewUrl(null); };
+  const closePreview = () => { setPreviewDoc(null); setPreviewUrl(null); setShowHistory(false); setVersions([]); };
+
+  const handleRestore = async (v: DocVersion) => {
+    if (!previewDoc) return;
+    if (!confirm(`Restaurar a versão v${v.version_number}? A versão atual será salva no histórico.`)) return;
+    const restored = await restoreVersion.mutateAsync({ documentId: previewDoc.id, version: v, currentDoc: previewDoc });
+    setPreviewDoc(restored);
+    if (restored.doc_type === "file" && restored.file_path) {
+      const url = await getFileUrl(restored.file_path); setPreviewUrl(url);
+    }
+    await loadVersions(previewDoc.id);
+  };
 
   const resetDoc = () => {
     setEditingDoc(null); setDTitle(""); setDType("text");
