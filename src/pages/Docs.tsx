@@ -172,7 +172,8 @@ export default function Docs() {
       if (selectedProject === "none" && d.project_id !== null) return false;
       else if (selectedProject !== "all" && selectedProject !== "none" && d.project_id !== selectedProject) return false;
       if (typeFilter !== "all" && d.doc_type !== typeFilter) return false;
-      if (categoryFilter !== "all" && (d.category ?? "") !== categoryFilter) return false;
+      if (categoryFilter === "__none__" && d.category) return false;
+      if (categoryFilter !== "all" && categoryFilter !== "__none__" && (d.category ?? "") !== categoryFilter) return false;
       if (favoritesOnly && !d.favorite) return false;
       if (tagFilter.length && !tagFilter.every(t => (d.tags ?? []).includes(t))) return false;
 
