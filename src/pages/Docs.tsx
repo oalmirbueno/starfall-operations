@@ -90,7 +90,8 @@ export default function Docs() {
     setEditingDoc(null); setDTitle(""); setDType("text");
     setDCompany(selectedCompany !== "all" ? selectedCompany : "");
     setDProject(selectedProject !== "all" && selectedProject !== "none" ? selectedProject : "");
-    setDCategory(""); setDContent(""); setDUrl(""); setDTags(""); setDFavorite(false); setDFile(null);
+    setDCategory(""); setDContent(""); setDUrl(""); setDTags(""); setDFavorite(false);
+    setDFile(null); setUploadPct(0); setUploadStatus("idle"); setUploadError(null);
   };
 
   const openEditDoc = (d: DocItem) => {
