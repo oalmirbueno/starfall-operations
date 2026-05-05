@@ -434,56 +434,113 @@ export default function Docs() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
-              {filteredDocs.map(d => {
-                const company = companyById(d.company_id);
-                const project = projectById(d.project_id);
+            <>
+              {/* Group toolbar */}
+              <div className="flex items-center justify-between gap-2 px-1">
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Layers className="h-3 w-3" /> Agrupar por:
+                  {(["category","project","company","none"] as const).map(g => (
+                    <button key={g} onClick={() => setGroupBy(g)}
+                      className={`px-2 py-0.5 rounded-md text-[11px] transition-colors ${
+                        groupBy === g ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      }`}>
+                      {g === "category" ? "Categoria" : g === "project" ? "Projeto" : g === "company" ? "Empresa" : "Nenhum"}
+                    </button>
+                  ))}
+                </div>
+                {groupBy !== "none" && (
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <button onClick={() => setCollapsedGroups(new Set())}
+                      className="text-muted-foreground hover:text-primary px-1.5 py-0.5">Expandir todas</button>
+                    <span className="text-border">|</span>
+                    <button
+                      onClick={() => {
+                        const keys = new Set<string>();
+                        filteredDocs.forEach(d => {
+                          let k = "__none__";
+                          if (groupBy === "category") k = d.category ?? "__none__";
+                          else if (groupBy === "project") k = d.project_id ?? "__none__";
+                          else if (groupBy === "company") k = d.company_id ?? "__none__";
+                          keys.add(k);
+                        });
+                        setCollapsedGroups(keys);
+                      }}
+                      className="text-muted-foreground hover:text-primary px-1.5 py-0.5">Recolher todas</button>
+                  </div>
+                )}
+              </div>
+
+              {(() => {
+                if (groupBy === "none") {
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+                      {filteredDocs.map(d => renderDocCard(d))}
+                    </div>
+                  );
+                }
+
+                // Build groups
+                type Group = { key: string; label: string; sublabel?: string | null; color?: string | null; items: DocItem[]; icon: any };
+                const map = new Map<string, Group>();
+                filteredDocs.forEach(d => {
+                  let key = "__none__"; let label = "Sem categoria"; let sublabel: string | null = null; let color: string | null = null; let icon: any = Folder;
+                  if (groupBy === "category") {
+                    key = d.category ?? "__none__";
+                    label = d.category ?? "Sem categoria";
+                    icon = Layers;
+                  } else if (groupBy === "project") {
+                    const p = projectById(d.project_id);
+                    key = d.project_id ?? "__none__";
+                    label = p?.name ?? "Sem projeto";
+                    sublabel = p ? (companyById(p.company_id)?.name ?? null) : null;
+                    icon = FolderKanban;
+                  } else {
+                    const c = companyById(d.company_id);
+                    key = d.company_id ?? "__none__";
+                    label = c?.name ?? "Sem empresa";
+                    icon = Building2;
+                  }
+                  if (!map.has(key)) map.set(key, { key, label, sublabel, color, items: [], icon });
+                  map.get(key)!.items.push(d);
+                });
+
+                const groups = Array.from(map.values()).sort((a, b) => {
+                  if (a.key === "__none__") return 1;
+                  if (b.key === "__none__") return -1;
+                  return b.items.length - a.items.length || a.label.localeCompare(b.label);
+                });
+
                 return (
-                  <div key={d.id} className="bg-card border border-border rounded-lg p-3 card-hover flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <button onClick={() => openPreview(d)} className="flex items-start gap-2.5 min-w-0 text-left flex-1">
-                        <DocThumbnail doc={d} size="md" />
-                        <span className="text-sm font-medium text-foreground hover:text-primary transition-colors line-clamp-2 leading-snug pt-0.5" title={d.title}>{d.title}</span>
-                      </button>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => openPreview(d)} className="p-1 text-muted-foreground hover:text-primary" title="Visualizar"><Eye className="h-3 w-3" /></button>
-                        <button onClick={() => updateDocument.mutate({ id: d.id, favorite: !d.favorite })} className={`p-1 ${d.favorite ? "text-warning" : "text-muted-foreground hover:text-warning"}`}>
-                          <Star className={`h-3 w-3 ${d.favorite ? "fill-current" : ""}`} />
-                        </button>
-                        <button onClick={() => openEditDoc(d)} className="p-1 text-muted-foreground hover:text-primary"><Edit className="h-3 w-3" /></button>
-                        <button onClick={() => { if (confirm("Remover este documento?")) removeDocument.mutate(d); }} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center flex-wrap gap-1 text-[10px] text-muted-foreground">
-                      {company && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><Building2 className="h-2.5 w-2.5" />{company.name}</span>}
-                      {project && <span className="bg-secondary/50 px-1.5 py-0.5 rounded flex items-center gap-1"><FolderKanban className="h-2.5 w-2.5" />{project.name}</span>}
-                      {d.category && <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded">{d.category}</span>}
-                    </div>
-
-                    {d.doc_type === "text" && d.content && (
-                      <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">{d.content}</p>
-                    )}
-                    {d.doc_type === "link" && d.url && (
-                      <a href={d.url.startsWith("http") ? d.url : `https://${d.url}`} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline truncate flex items-center gap-1">
-                        <Globe className="h-3 w-3" />{getDomain(d.url) ?? d.url}<ExternalLink className="h-2.5 w-2.5" />
-                      </a>
-                    )}
-                    {d.doc_type === "file" && d.file_path && (
-                      <button onClick={() => openFile(d)} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
-                        <Download className="h-3 w-3" />{d.file_name} <span className="text-muted-foreground">({fmtSize(d.file_size)})</span>
-                      </button>
-                    )}
-
-                    {d.tags?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {d.tags.map(t => <span key={t} className="text-[10px] bg-secondary/50 px-1.5 py-0.5 rounded text-muted-foreground">#{t}</span>)}
-                      </div>
-                    )}
+                  <div className="space-y-3">
+                    {groups.map(g => {
+                      const collapsed = collapsedGroups.has(g.key);
+                      const GIcon = g.icon;
+                      return (
+                        <div key={g.key} className="bg-card/60 border border-border rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => toggleGroup(g.key)}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-secondary/40 transition-colors text-left"
+                          >
+                            <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${collapsed ? "" : "rotate-90"}`} />
+                            <GIcon className={`h-3.5 w-3.5 ${g.key === "__none__" ? "text-muted-foreground" : "text-primary"}`} />
+                            <span className="text-sm font-medium text-foreground truncate">{g.label}</span>
+                            {g.sublabel && <span className="text-[10px] text-muted-foreground">· {g.sublabel}</span>}
+                            <span className="ml-auto text-[10px] font-mono px-2 py-0.5 rounded-full bg-secondary/70 text-muted-foreground">
+                              {g.items.length} {g.items.length === 1 ? "item" : "itens"}
+                            </span>
+                          </button>
+                          {!collapsed && (
+                            <div className="p-3 pt-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 border-t border-border/50">
+                              {g.items.map(d => renderDocCard(d))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 );
-              })}
-            </div>
+              })()}
+            </>
           )}
         </main>
       </div>
