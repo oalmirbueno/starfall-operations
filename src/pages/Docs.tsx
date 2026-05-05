@@ -543,7 +543,7 @@ export default function Docs() {
                     <div className="flex items-start justify-between gap-2">
                       <button onClick={() => openPreview(d)} className="flex items-center gap-2 min-w-0 text-left flex-1">
                         {fav ? <img src={fav} alt="" className="h-4 w-4 rounded-sm" onError={(e) => (e.currentTarget.style.display = "none")} /> : <TypeIcon className="h-4 w-4 text-primary shrink-0" />}
-                        <span className="text-sm font-medium text-foreground truncate hover:text-primary transition-colors">{d.title}</span>
+                        <span className="text-sm font-medium text-foreground hover:text-primary transition-colors line-clamp-2 leading-snug" title={d.title}>{d.title}</span>
                       </button>
                       <div className="flex items-center gap-1 shrink-0">
                         <button onClick={() => openPreview(d)} className="p-1 text-muted-foreground hover:text-primary" title="Visualizar"><Eye className="h-3 w-3" /></button>
