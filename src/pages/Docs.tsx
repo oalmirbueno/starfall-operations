@@ -346,8 +346,8 @@ export default function Docs() {
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setCName(""); setCWebsite(""); setCDesc(""); setCompanyDlg(true); }}>
             <Building2 className="h-3.5 w-3.5" /> Nova Empresa
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setPName(""); setPDesc(""); setPCompany(selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")); setProjectDlg(true); }} disabled={!companies.data?.length}>
-            <FolderKanban className="h-3.5 w-3.5" /> Novo Projeto
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setPName(""); setPDesc(""); setPParent(""); setPCompany(selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")); setProjectDlg(true); }} disabled={!companies.data?.length}>
+            <FolderKanban className="h-3.5 w-3.5" /> Nova Pasta
           </Button>
           <Button size="sm" className="gap-1.5" onClick={() => { resetDoc(); setDocDlg(true); }}>
             <Plus className="h-3.5 w-3.5" /> Novo Documento
