@@ -984,4 +984,13 @@ export default function Docs() {
   );
 }
 
+function FilterChip({ label, icon, onClear }: { label: string; icon?: React.ReactNode; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-full bg-primary/10 text-primary text-[11px]">
+      {icon}<span className="max-w-[140px] truncate">{label}</span>
+      <button onClick={onClear} className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"><X className="h-2.5 w-2.5" /></button>
+    </span>
+  );
+}
+
 
