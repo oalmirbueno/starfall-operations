@@ -360,13 +360,17 @@ export default function Docs() {
         <DocsSidebar
           documents={documents.data ?? []}
           companies={companies.data ?? []}
+          projects={projects.data ?? []}
           categoryFilter={categoryFilter}
           setCategoryFilter={setCategoryFilter}
           favoritesOnly={favoritesOnly}
           setFavoritesOnly={setFavoritesOnly}
           selectedCompany={selectedCompany}
           setSelectedCompany={(v) => { setSelectedCompany(v); setSelectedProject("all"); }}
+          selectedProject={selectedProject}
+          setSelectedProject={setSelectedProject}
           allCategories={allCategories}
+          onNewProject={() => setProjectDlg(true)}
         />
 
 
