@@ -1,4 +1,4 @@
-import { LayoutDashboard, CreditCard, Server, KeyRound, Bell, DollarSign, Lightbulb, StickyNote, FileBarChart, Settings, LogOut, ChevronRight, Link2 } from "lucide-react";
+import { LayoutDashboard, CreditCard, Server, KeyRound, Bell, DollarSign, Lightbulb, StickyNote, FileBarChart, Settings, LogOut, ChevronRight, Link2, BookOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
