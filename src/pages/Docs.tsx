@@ -59,6 +59,7 @@ export default function Docs() {
   const [dFavorite, setDFavorite] = useState(false);
   const [dFile, setDFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const resetDoc = () => {
     setEditingDoc(null); setDTitle(""); setDType("text");
@@ -154,7 +155,7 @@ export default function Docs() {
     (documents.data ?? []).filter(d => d.project_id === pid).length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in w-full max-w-none">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Documentação</h1>
@@ -175,7 +176,7 @@ export default function Docs() {
 
       <div className="grid grid-cols-12 gap-4">
         {/* Sidebar */}
-        <aside className="col-span-12 md:col-span-3 bg-card border border-border rounded-lg p-3 space-y-3 max-h-[75vh] overflow-y-auto">
+        <aside className="col-span-12 lg:col-span-2 bg-card border border-border rounded-lg p-3 space-y-3 max-h-[78vh] overflow-y-auto">
           <button onClick={() => { setSelectedCompany("all"); setSelectedProject("all"); }}
             className={`w-full text-left px-2 py-1.5 rounded text-xs flex items-center justify-between ${selectedCompany === "all" ? "bg-primary/10 text-primary" : "hover:bg-secondary/50 text-foreground"}`}>
             <span className="flex items-center gap-2"><Folder className="h-3.5 w-3.5" /> Todas as empresas</span>
@@ -239,7 +240,7 @@ export default function Docs() {
         </aside>
 
         {/* Main */}
-        <main className="col-span-12 md:col-span-9 space-y-4">
+        <main className="col-span-12 lg:col-span-10 space-y-4">
           <div className="flex flex-wrap items-center gap-2 p-3 bg-card border border-border rounded-lg">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -266,7 +267,7 @@ export default function Docs() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
               {filteredDocs.map(d => {
                 const company = companyById(d.company_id);
                 const project = projectById(d.project_id);
@@ -361,7 +362,7 @@ export default function Docs() {
 
       {/* Document dialog */}
       <Dialog open={docDlg} onOpenChange={open => { if (!open) { setDocDlg(false); resetDoc(); } }}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[88vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingDoc ? "Editar Documento" : "Novo Documento"}</DialogTitle>
             <DialogDescription>Texto, link externo ou arquivo — sempre vinculado a uma empresa/projeto.</DialogDescription>
@@ -417,8 +418,36 @@ export default function Docs() {
             {dType === "file" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">{editingDoc?.file_path ? "Substituir arquivo (opcional)" : "Arquivo *"}</Label>
-                <Input type="file" onChange={e => setDFile(e.target.files?.[0] ?? null)} className="bg-secondary/50" />
-                {editingDoc?.file_name && <p className="text-[11px] text-muted-foreground">Atual: {editingDoc.file_name}</p>}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault(); setDragOver(false);
+                    const f = e.dataTransfer.files?.[0]; if (f) setDFile(f);
+                  }}
+                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${dragOver ? "border-primary bg-primary/5" : "border-border bg-secondary/30 hover:border-primary/50"}`}
+                >
+                  <input
+                    type="file"
+                    onChange={e => setDFile(e.target.files?.[0] ?? null)}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    accept="*/*"
+                  />
+                  <Paperclip className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  {dFile ? (
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{dFile.name}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{fmtSize(dFile.size)} · {dFile.type || "tipo desconhecido"}</p>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDFile(null); }} className="text-[11px] text-destructive hover:underline mt-1">Remover</button>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-foreground">Arraste e solte um arquivo aqui</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">ou clique para selecionar · qualquer formato</p>
+                    </div>
+                  )}
+                </div>
+                {editingDoc?.file_name && !dFile && <p className="text-[11px] text-muted-foreground">Atual: {editingDoc.file_name}</p>}
               </div>
             )}
             <div className="space-y-1.5">
