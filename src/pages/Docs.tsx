@@ -291,11 +291,12 @@ export default function Docs() {
                 return (
                   <div key={d.id} className="bg-card border border-border rounded-lg p-4 card-hover flex flex-col gap-2">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <button onClick={() => openPreview(d)} className="flex items-center gap-2 min-w-0 text-left flex-1">
                         {fav ? <img src={fav} alt="" className="h-4 w-4 rounded-sm" onError={(e) => (e.currentTarget.style.display = "none")} /> : <TypeIcon className="h-4 w-4 text-primary shrink-0" />}
-                        <span className="text-sm font-medium text-foreground truncate">{d.title}</span>
-                      </div>
+                        <span className="text-sm font-medium text-foreground truncate hover:text-primary transition-colors">{d.title}</span>
+                      </button>
                       <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => openPreview(d)} className="p-1 text-muted-foreground hover:text-primary" title="Visualizar"><Eye className="h-3 w-3" /></button>
                         <button onClick={() => updateDocument.mutate({ id: d.id, favorite: !d.favorite })} className={`p-1 ${d.favorite ? "text-warning" : "text-muted-foreground hover:text-warning"}`}>
                           <Star className={`h-3 w-3 ${d.favorite ? "fill-current" : ""}`} />
                         </button>
