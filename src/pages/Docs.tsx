@@ -75,6 +75,7 @@ export default function Docs() {
     setUploadPct(0);
     setUploadError(null);
     setUploadStatus(f ? "queued" : "idle");
+    if (f) setDType("file");
   };
 
   // Preview state
@@ -623,9 +624,13 @@ export default function Docs() {
             {dType === "link" && (
               <div className="space-y-1.5"><Label className="text-xs">URL *</Label><Input value={dUrl} onChange={e => setDUrl(e.target.value)} placeholder="https://" className="bg-secondary/50" /></div>
             )}
-            {dType === "file" && (
+            {dType !== "link" && (
               <div className="space-y-1.5">
-                <Label className="text-xs">{editingDoc?.file_path ? "Substituir arquivo (opcional)" : "Arquivo *"}</Label>
+                <Label className="text-xs">
+                  {dType === "file"
+                    ? (editingDoc?.file_path ? "Substituir arquivo (opcional)" : "Arquivo *")
+                    : "Anexar arquivo (opcional) — arraste ou clique"}
+                </Label>
                 <div
                   onDragOver={(e) => { e.preventDefault(); if (!uploading) setDragOver(true); }}
                   onDragLeave={() => setDragOver(false)}
@@ -644,7 +649,7 @@ export default function Docs() {
                   <input
                     type="file"
                     onChange={e => pickFile(e.target.files?.[0] ?? null)}
-                    className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    className={`absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed ${dFile ? "pointer-events-none" : ""}`}
                     accept="*/*"
                     disabled={uploading}
                   />
@@ -682,7 +687,7 @@ export default function Docs() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); pickFile(null); }}
-                                className="text-destructive hover:underline"
+                                className="relative z-10 text-destructive hover:underline"
                               >
                                 {uploadStatus === "failed" ? "Tentar outro" : "Remover"}
                               </button>
