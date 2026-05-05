@@ -338,20 +338,106 @@ export default function Docs() {
 
         {/* Main */}
         <main className="col-span-12 lg:col-span-10 space-y-4">
-          <div className="flex flex-wrap items-center gap-2 p-3 bg-card border border-border rounded-lg">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar documentos…" className="pl-8 h-9 bg-secondary/50" />
+          <div className="bg-card border border-border rounded-lg p-3 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder='Buscar… (use tag:foo  type:link  company:acme  cat:contrato  fav:true  "frase exata")'
+                  className="pl-8 h-9 bg-secondary/50 font-mono text-xs"
+                />
+              </div>
+              <Select value={selectedCompany} onValueChange={(v) => { setSelectedCompany(v as any); setSelectedProject("all"); }}>
+                <SelectTrigger className="w-[160px] h-9 bg-secondary/50"><SelectValue placeholder="Empresa" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas empresas</SelectItem>
+                  {(companies.data ?? []).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={selectedProject} onValueChange={(v) => setSelectedProject(v as any)}>
+                <SelectTrigger className="w-[160px] h-9 bg-secondary/50"><SelectValue placeholder="Projeto" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos projetos</SelectItem>
+                  <SelectItem value="none">— Sem projeto —</SelectItem>
+                  {projectsForCompany(selectedCompany !== "all" ? selectedCompany : null).map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[140px] h-9 bg-secondary/50"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="text">Texto / Notas</SelectItem>
+                  <SelectItem value="link">Links externos</SelectItem>
+                  <SelectItem value="file">Arquivos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[150px] h-9 bg-secondary/50"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas categorias</SelectItem>
+                  {allCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <button
+                onClick={() => setFavoritesOnly(v => !v)}
+                className={`h-9 px-2.5 rounded-md border text-xs flex items-center gap-1.5 transition-colors ${favoritesOnly ? "bg-warning/10 border-warning/40 text-warning" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"}`}
+                title="Apenas favoritos"
+              >
+                <Star className={`h-3.5 w-3.5 ${favoritesOnly ? "fill-current" : ""}`} /> Favoritos
+              </button>
+              <button
+                onClick={() => setShowAdvanced(v => !v)}
+                className={`h-9 px-2.5 rounded-md border text-xs flex items-center gap-1.5 ${showAdvanced ? "bg-primary/10 border-primary/40 text-primary" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"}`}
+              >
+                Tags {tagFilter.length > 0 && <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-[10px]">{tagFilter.length}</span>}
+              </button>
+              {hasActiveFilters && (
+                <button onClick={clearAllFilters} className="h-9 px-2.5 rounded-md border border-border bg-secondary/50 text-xs text-muted-foreground hover:text-destructive flex items-center gap-1">
+                  <X className="h-3 w-3" /> Limpar
+                </button>
+              )}
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[150px] h-9 bg-secondary/50"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="text">Texto / Notas</SelectItem>
-                <SelectItem value="link">Links externos</SelectItem>
-                <SelectItem value="file">Arquivos</SelectItem>
-              </SelectContent>
-            </Select>
+
+            {showAdvanced && (
+              <div className="pt-2 border-t border-border/50">
+                {allTags.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground italic px-1">Nenhuma tag cadastrada ainda.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {allTags.map(t => {
+                      const active = tagFilter.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => setTagFilter(s => active ? s.filter(x => x !== t) : [...s, t])}
+                          className={`px-2 py-0.5 rounded-full text-[10px] border transition-colors ${active ? "bg-primary/20 border-primary text-primary" : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground hover:border-primary/40"}`}
+                        >
+                          #{t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+              <span>{filteredDocs.length} de {documents.data?.length ?? 0} documento(s)</span>
+              {tagFilter.length > 0 && (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {tagFilter.map(t => (
+                    <span key={t} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                      #{t}
+                      <button onClick={() => setTagFilter(s => s.filter(x => x !== t))} className="hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {filteredDocs.length === 0 ? (
