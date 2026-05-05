@@ -833,6 +833,50 @@ export default function Docs() {
                       )}
                     </div>
                   )}
+                  </div>
+
+                  {showHistory && (
+                    <aside className="w-80 shrink-0 border-l border-border bg-card overflow-auto">
+                      <div className="p-3 border-b border-border flex items-center gap-2">
+                        <History className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-xs font-medium text-foreground">Histórico de versões</span>
+                        <span className="ml-auto text-[10px] text-muted-foreground">{versions.length}</span>
+                      </div>
+                      <div className="p-2 space-y-1.5">
+                        {versionsLoading && <p className="text-[11px] text-muted-foreground italic px-2 py-3">Carregando…</p>}
+                        {!versionsLoading && versions.length === 0 && (
+                          <p className="text-[11px] text-muted-foreground italic px-2 py-3 text-center">Sem versões anteriores. Edite o documento para começar a registrar o histórico.</p>
+                        )}
+                        {versions.map(v => (
+                          <div key={v.id} className="border border-border rounded-md p-2 bg-secondary/30 hover:border-primary/40 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-mono text-primary">v{v.version_number}</span>
+                              <button
+                                onClick={() => handleRestore(v)}
+                                className="text-[10px] inline-flex items-center gap-1 text-muted-foreground hover:text-primary"
+                                title="Restaurar esta versão"
+                              ><RotateCcw className="h-2.5 w-2.5" /> Restaurar</button>
+                            </div>
+                            <p className="text-[11px] text-foreground truncate mt-0.5" title={v.title}>{v.title}</p>
+                            <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
+                              <span>{new Date(v.created_at).toLocaleString("pt-BR")}</span>
+                            </div>
+                            {v.author_name && (
+                              <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground">
+                                <User className="h-2.5 w-2.5" /> {v.author_name}
+                              </div>
+                            )}
+                            {v.change_note && (
+                              <p className="text-[10px] text-muted-foreground/90 italic mt-1 border-t border-border/50 pt-1">"{v.change_note}"</p>
+                            )}
+                            {v.file_name && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={v.file_name}>📎 {v.file_name}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </aside>
+                  )}
                 </div>
               </>
             );
