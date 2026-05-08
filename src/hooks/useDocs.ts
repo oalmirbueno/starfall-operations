@@ -249,6 +249,20 @@ export function useDocs() {
     return data?.signedUrl ?? null;
   };
 
+  const downloadFile = async (path: string, fileName?: string | null): Promise<void> => {
+    const name = fileName || path.split("/").pop() || "arquivo";
+    const { data, error } = await supabase.storage.from("documents")
+      .createSignedUrl(path, 60 * 10, { download: name });
+    if (error || !data?.signedUrl) { toast.error("Não foi possível baixar"); return; }
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.download = name;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
   const listVersions = async (documentId: string): Promise<DocVersion[]> => {
     const { data, error } = await supabase
       .from("document_versions").select("*")
