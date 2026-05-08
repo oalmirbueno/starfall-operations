@@ -1003,7 +1003,7 @@ export default function Docs() {
           </div>
         );
 
-        if (previewMode === "modal") {
+        if (effectivePreviewMode === "modal") {
           return (
             <Dialog open={true} onOpenChange={(o) => { if (!o) closePreview(); }}>
               <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-hidden flex flex-col p-0">
