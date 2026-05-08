@@ -267,6 +267,15 @@ export default function Docs() {
     else toast.error("Não foi possível abrir o arquivo");
   };
 
+  const buildDownloadName = (d: DocItem): string => {
+    const orig = d.file_name ?? d.file_path?.split("/").pop() ?? "";
+    const dot = orig.lastIndexOf(".");
+    const ext = dot > 0 ? orig.slice(dot) : "";
+    const base = (d.title ?? "arquivo").trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").slice(0, 120) || "arquivo";
+    return base.toLowerCase().endsWith(ext.toLowerCase()) ? base : base + ext;
+  };
+  const downloadDoc = (d: DocItem) => { if (d.file_path) downloadFile(d.file_path, buildDownloadName(d)); };
+
   const isLoading = companies.isLoading || projects.isLoading || documents.isLoading;
   if (isLoading) {
     return (
