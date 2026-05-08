@@ -974,7 +974,7 @@ export default function Docs() {
             </div>
 
             {showHistory && (
-              <aside className="w-72 shrink-0 border-l border-border bg-card overflow-auto">
+              <aside className="w-full sm:w-72 sm:shrink-0 border-t sm:border-t-0 sm:border-l border-border bg-card overflow-auto max-h-[40vh] sm:max-h-none">
                 <div className="p-3 border-b border-border flex items-center gap-2">
                   <History className="h-3.5 w-3.5 text-primary" />
                   <span className="text-xs font-medium text-foreground">Histórico</span>
