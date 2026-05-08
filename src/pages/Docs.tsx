@@ -847,7 +847,7 @@ export default function Docs() {
             </div>
             <div className="flex items-center gap-0.5 shrink-0">
               {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer" className="p-1.5 text-muted-foreground hover:text-primary" title="Abrir em nova aba"><ExternalLink className="h-3.5 w-3.5" /></a>}
-              {previewUrl && <a href={previewUrl} download={d.file_name ?? undefined} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3.5 w-3.5" /></a>}
+              {d.file_path && <button onClick={() => downloadFile(d.file_path!, d.file_name)} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3.5 w-3.5" /></button>}
               <button onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadVersions(d.id); }}
                 className={`p-1.5 ${showHistory ? "text-primary bg-primary/10 rounded" : "text-muted-foreground hover:text-primary"}`} title="Histórico"><History className="h-3.5 w-3.5" /></button>
               <button onClick={() => openEditDoc(d)} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-3.5 w-3.5" /></button>
