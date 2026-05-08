@@ -94,6 +94,9 @@ export default function Docs() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewMode, setPreviewMode] = useState<"dock" | "modal">("dock");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const effectivePreviewMode: "dock" | "modal" = isMobile ? "modal" : previewMode;
 
   // History state
   const [showHistory, setShowHistory] = useState(false);
