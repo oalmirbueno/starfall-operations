@@ -36,7 +36,7 @@ const COLOR_PRESETS = [
 export function DocsSidebar({
   documents, companies, projects, categoryFilter, setCategoryFilter,
   favoritesOnly, setFavoritesOnly, selectedCompany, setSelectedCompany,
-  selectedProject, setSelectedProject, allCategories, onNewProject,
+  selectedProject, setSelectedProject, allCategories, onNewProject, className,
 }: Props) {
   const { list: catsQ, create, rename, setColor, remove, reorder } = useDocCategories();
   const dbCats = catsQ.data ?? [];
