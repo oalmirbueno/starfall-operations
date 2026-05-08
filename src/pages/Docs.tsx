@@ -720,13 +720,13 @@ export default function Docs() {
 
       {/* Document dialog */}
       <Dialog open={docDlg} onOpenChange={open => { if (!open) { setDocDlg(false); resetDoc(); } }}>
-        <DialogContent className="sm:max-w-3xl max-h-[88vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 w-[calc(100vw-1rem)]">
           <DialogHeader>
             <DialogTitle>{editingDoc ? "Editar Documento" : "Novo Documento"}</DialogTitle>
             <DialogDescription>Texto, link externo ou arquivo — sempre vinculado a uma empresa/projeto.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Tipo</Label>
                 <Select value={dType} onValueChange={(v) => setDType(v as DocType)}>
@@ -738,12 +738,12 @@ export default function Docs() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 col-span-2">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label className="text-xs">Título *</Label>
                 <Input value={dTitle} onChange={e => setDTitle(e.target.value)} className="bg-secondary/50" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Empresa</Label>
                 <Select value={dCompany || "none"} onValueChange={v => { setDCompany(v === "none" ? "" : v); setDProject(""); }}>
@@ -765,7 +765,7 @@ export default function Docs() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label className="text-xs">Categoria</Label><Input value={dCategory} onChange={e => setDCategory(e.target.value)} placeholder="ex: contrato, runbook" className="bg-secondary/50" /></div>
               <div className="space-y-1.5"><Label className="text-xs">Tags (vírgula)</Label><Input value={dTags} onChange={e => setDTags(e.target.value)} className="bg-secondary/50" /></div>
             </div>
