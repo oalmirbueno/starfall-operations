@@ -19,6 +19,7 @@ interface Props {
   setSelectedProject: (v: string | "all" | "none") => void;
   allCategories: string[];
   onNewProject?: (parentId?: string | null, companyId?: string | null) => void;
+  className?: string;
 }
 
 const COLOR_PRESETS = [
