@@ -19,6 +19,7 @@ interface Props {
   setSelectedProject: (v: string | "all" | "none") => void;
   allCategories: string[];
   onNewProject?: (parentId?: string | null, companyId?: string | null) => void;
+  className?: string;
 }
 
 const COLOR_PRESETS = [
@@ -35,7 +36,7 @@ const COLOR_PRESETS = [
 export function DocsSidebar({
   documents, companies, projects, categoryFilter, setCategoryFilter,
   favoritesOnly, setFavoritesOnly, selectedCompany, setSelectedCompany,
-  selectedProject, setSelectedProject, allCategories, onNewProject,
+  selectedProject, setSelectedProject, allCategories, onNewProject, className,
 }: Props) {
   const { list: catsQ, create, rename, setColor, remove, reorder } = useDocCategories();
   const dbCats = catsQ.data ?? [];
@@ -115,7 +116,7 @@ export function DocsSidebar({
   };
 
   return (
-    <aside className="col-span-12 lg:col-span-3 xl:col-span-3 2xl:col-span-2 bg-card border border-border rounded-lg overflow-hidden flex flex-col max-h-[80vh]">
+    <aside className={className ?? "col-span-12 lg:col-span-3 xl:col-span-3 2xl:col-span-2 bg-card border border-border rounded-lg overflow-hidden flex flex-col max-h-[80vh]"}>
       <div className="px-3 pt-3 pb-2 border-b border-border/60">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Biblioteca</h3>

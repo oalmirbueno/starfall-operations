@@ -1,21 +1,23 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDocs, Company, DocProject, DocItem, DocType, DocVersion } from "@/hooks/useDocs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, FolderKanban, FileText, Link2, Paperclip, Plus, Search, Star,
   Trash2, Edit, ExternalLink, Download, ChevronRight, Folder, FolderOpen, BookOpen, Globe, Eye, X,
-  History, RotateCcw, User, Tag, Layers, Maximize2, Minimize2
+  History, RotateCcw, User, Tag, Layers, Maximize2, Minimize2, Menu
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DocsSidebar } from "@/components/DocsSidebar";
 import { DocThumbnail } from "@/components/DocThumbnail";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
 function getDomain(url: string | null): string | null {
@@ -92,6 +94,9 @@ export default function Docs() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewMode, setPreviewMode] = useState<"dock" | "modal">("dock");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const effectivePreviewMode: "dock" | "modal" = isMobile ? "modal" : previewMode;
 
   // History state
   const [showHistory, setShowHistory] = useState(false);
@@ -341,28 +346,65 @@ export default function Docs() {
 
   return (
     <div className="space-y-6 animate-fade-in w-full max-w-none">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Documentação</h1>
-          <p className="text-sm text-muted-foreground mt-1">Empresas → Projetos → Documentos. Tudo num só lugar.</p>
+      <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Documentação</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 hidden sm:block">Empresas → Projetos → Documentos. Tudo num só lugar.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setCName(""); setCWebsite(""); setCDesc(""); setCompanyDlg(true); }}>
-            <Building2 className="h-3.5 w-3.5" /> Nova Empresa
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <Button size="sm" variant="outline" className="lg:hidden gap-1.5 h-9 px-2.5" onClick={() => setMobileSidebarOpen(true)} aria-label="Abrir biblioteca">
+            <Menu className="h-4 w-4" /> <span className="text-xs">Biblioteca</span>
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setPName(""); setPDesc(""); setPParent(""); setPCompany(selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")); setProjectDlg(true); }} disabled={!companies.data?.length}>
-            <FolderKanban className="h-3.5 w-3.5" /> Nova Pasta
+          <Button size="sm" variant="outline" className="gap-1.5 h-9 px-2.5" onClick={() => { setCName(""); setCWebsite(""); setCDesc(""); setCompanyDlg(true); }}>
+            <Building2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Nova Empresa</span>
           </Button>
-          <Button size="sm" className="gap-1.5" onClick={() => { resetDoc(); setDocDlg(true); }}>
-            <Plus className="h-3.5 w-3.5" /> Novo Documento
+          <Button size="sm" variant="outline" className="gap-1.5 h-9 px-2.5" onClick={() => { setPName(""); setPDesc(""); setPParent(""); setPCompany(selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")); setProjectDlg(true); }} disabled={!companies.data?.length}>
+            <FolderKanban className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Nova Pasta</span>
+          </Button>
+          <Button size="sm" className="gap-1.5 h-9 px-2.5" onClick={() => { resetDoc(); setDocDlg(true); }}>
+            <Plus className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Novo Documento</span><span className="sm:hidden text-xs">Novo</span>
           </Button>
         </div>
       </div>
 
+      {/* Mobile sidebar drawer */}
+      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+        <SheetContent side="left" className="p-0 w-[88vw] max-w-sm flex flex-col">
+          <SheetHeader className="px-4 pt-4 pb-2">
+            <SheetTitle className="text-sm">Biblioteca</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-hidden flex">
+            <DocsSidebar
+              className="flex-1 bg-transparent border-0 rounded-none overflow-hidden flex flex-col"
+              documents={documents.data ?? []}
+              companies={companies.data ?? []}
+              projects={projects.data ?? []}
+              categoryFilter={categoryFilter}
+              setCategoryFilter={(v) => { setCategoryFilter(v); setMobileSidebarOpen(false); }}
+              favoritesOnly={favoritesOnly}
+              setFavoritesOnly={(v) => { setFavoritesOnly(v); }}
+              selectedCompany={selectedCompany}
+              setSelectedCompany={(v) => { setSelectedCompany(v); setSelectedProject("all"); }}
+              selectedProject={selectedProject}
+              setSelectedProject={(v) => { setSelectedProject(v); setMobileSidebarOpen(false); }}
+              allCategories={allCategories}
+              onNewProject={(parentId, companyId) => {
+                setPName(""); setPDesc("");
+                setPCompany(companyId ?? (selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")));
+                setPParent(parentId ?? "");
+                setProjectDlg(true);
+                setMobileSidebarOpen(false);
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <div className="grid grid-cols-12 gap-4">
-        {/* Sidebar — Categorias (navegação principal) */}
-        <DocsSidebar
-          documents={documents.data ?? []}
+        {/* Sidebar — Categorias (navegação principal) — desktop only */}
+        <div className="hidden lg:contents">
+          <DocsSidebar
+            documents={documents.data ?? []}
           companies={companies.data ?? []}
           projects={projects.data ?? []}
           categoryFilter={categoryFilter}
@@ -380,12 +422,13 @@ export default function Docs() {
             setPParent(parentId ?? "");
             setProjectDlg(true);
           }}
-        />
+          />
+        </div>
 
 
         {/* Main */}
-        <main className={`col-span-12 space-y-4 ${
-          previewDoc && previewMode === "dock"
+        <main className={`col-span-12 min-w-0 space-y-4 ${
+          previewDoc && effectivePreviewMode === "dock"
             ? "lg:col-span-5 xl:col-span-5 2xl:col-span-5"
             : "lg:col-span-9 xl:col-span-9 2xl:col-span-10"
         }`}>
@@ -547,7 +590,7 @@ export default function Docs() {
               </div>
 
               {(() => {
-                const dockOpen = !!previewDoc && previewMode === "dock";
+                const dockOpen = !!previewDoc && effectivePreviewMode === "dock";
                 const gridCls = dockOpen
                   ? "grid grid-cols-1 xl:grid-cols-2 gap-3"
                   : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3";
@@ -677,13 +720,13 @@ export default function Docs() {
 
       {/* Document dialog */}
       <Dialog open={docDlg} onOpenChange={open => { if (!open) { setDocDlg(false); resetDoc(); } }}>
-        <DialogContent className="sm:max-w-3xl max-h-[88vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 w-[calc(100vw-1rem)]">
           <DialogHeader>
             <DialogTitle>{editingDoc ? "Editar Documento" : "Novo Documento"}</DialogTitle>
             <DialogDescription>Texto, link externo ou arquivo — sempre vinculado a uma empresa/projeto.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Tipo</Label>
                 <Select value={dType} onValueChange={(v) => setDType(v as DocType)}>
@@ -695,12 +738,12 @@ export default function Docs() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 col-span-2">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label className="text-xs">Título *</Label>
                 <Input value={dTitle} onChange={e => setDTitle(e.target.value)} className="bg-secondary/50" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Empresa</Label>
                 <Select value={dCompany || "none"} onValueChange={v => { setDCompany(v === "none" ? "" : v); setDProject(""); }}>
@@ -722,7 +765,7 @@ export default function Docs() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label className="text-xs">Categoria</Label><Input value={dCategory} onChange={e => setDCategory(e.target.value)} placeholder="ex: contrato, runbook" className="bg-secondary/50" /></div>
               <div className="space-y-1.5"><Label className="text-xs">Tags (vírgula)</Label><Input value={dTags} onChange={e => setDTags(e.target.value)} className="bg-secondary/50" /></div>
             </div>
@@ -864,7 +907,7 @@ export default function Docs() {
                 className={`p-1.5 ${showHistory ? "text-primary bg-primary/10 rounded" : "text-muted-foreground hover:text-primary"}`} title="Histórico"><History className="h-3.5 w-3.5" /></button>
               <button onClick={() => openEditDoc(d)} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-3.5 w-3.5" /></button>
               <button onClick={() => setPreviewMode(previewMode === "dock" ? "modal" : "dock")}
-                className="p-1.5 text-muted-foreground hover:text-primary" title={previewMode === "dock" ? "Expandir" : "Reduzir"}>
+                className="hidden lg:inline-flex p-1.5 text-muted-foreground hover:text-primary" title={previewMode === "dock" ? "Expandir" : "Reduzir"}>
                 {previewMode === "dock" ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
               </button>
               <button onClick={closePreview} className="p-1.5 text-muted-foreground hover:text-foreground" title="Fechar"><X className="h-3.5 w-3.5" /></button>
@@ -873,7 +916,7 @@ export default function Docs() {
         );
 
         const Body = (
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
             <div className="flex-1 overflow-auto p-4 bg-secondary/10">
               {d.doc_type === "text" && (
                 d.content
@@ -931,7 +974,7 @@ export default function Docs() {
             </div>
 
             {showHistory && (
-              <aside className="w-72 shrink-0 border-l border-border bg-card overflow-auto">
+              <aside className="w-full sm:w-72 sm:shrink-0 border-t sm:border-t-0 sm:border-l border-border bg-card overflow-auto max-h-[40vh] sm:max-h-none">
                 <div className="p-3 border-b border-border flex items-center gap-2">
                   <History className="h-3.5 w-3.5 text-primary" />
                   <span className="text-xs font-medium text-foreground">Histórico</span>
@@ -960,10 +1003,10 @@ export default function Docs() {
           </div>
         );
 
-        if (previewMode === "modal") {
+        if (effectivePreviewMode === "modal") {
           return (
             <Dialog open={true} onOpenChange={(o) => { if (!o) closePreview(); }}>
-              <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-hidden flex flex-col p-0">
+              <DialogContent className="sm:max-w-5xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[92vh] h-[95vh] sm:h-auto overflow-hidden flex flex-col p-0">
                 {Header}
                 {Body}
               </DialogContent>
