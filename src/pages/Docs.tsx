@@ -1006,7 +1006,7 @@ export default function Docs() {
         if (effectivePreviewMode === "modal") {
           return (
             <Dialog open={true} onOpenChange={(o) => { if (!o) closePreview(); }}>
-              <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-hidden flex flex-col p-0">
+              <DialogContent className="sm:max-w-5xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[92vh] h-[95vh] sm:h-auto overflow-hidden flex flex-col p-0">
                 {Header}
                 {Body}
               </DialogContent>
