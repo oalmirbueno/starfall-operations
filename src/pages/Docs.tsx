@@ -429,7 +429,7 @@ export default function Docs() {
         {/* Main */}
         <main className={`col-span-12 min-w-0 space-y-4 ${
           previewDoc && effectivePreviewMode === "dock"
-            ? "lg:col-span-9 xl:col-span-9 2xl:col-span-10 lg:!col-span-5 lg:xl:!col-span-5 lg:2xl:!col-span-5"
+            ? "lg:col-span-5 xl:col-span-5 2xl:col-span-5"
             : "lg:col-span-9 xl:col-span-9 2xl:col-span-10"
         }`}>
           <div className="bg-card/60 border border-border/60 rounded-xl p-2 flex flex-wrap items-center gap-2">
