@@ -40,7 +40,7 @@ export default function Docs() {
     createCompany, removeCompany,
     createProject, removeProject,
     createDocument, updateDocument, removeDocument,
-    uploadFile, getFileUrl,
+    uploadFile, getFileUrl, downloadFile,
     listVersions, restoreVersion,
   } = useDocs();
 
@@ -847,7 +847,7 @@ export default function Docs() {
             </div>
             <div className="flex items-center gap-0.5 shrink-0">
               {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer" className="p-1.5 text-muted-foreground hover:text-primary" title="Abrir em nova aba"><ExternalLink className="h-3.5 w-3.5" /></a>}
-              {previewUrl && <a href={previewUrl} download={d.file_name ?? undefined} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3.5 w-3.5" /></a>}
+              {d.file_path && <button onClick={() => downloadFile(d.file_path!, d.file_name)} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3.5 w-3.5" /></button>}
               <button onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadVersions(d.id); }}
                 className={`p-1.5 ${showHistory ? "text-primary bg-primary/10 rounded" : "text-muted-foreground hover:text-primary"}`} title="Histórico"><History className="h-3.5 w-3.5" /></button>
               <button onClick={() => openEditDoc(d)} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-3.5 w-3.5" /></button>
@@ -905,7 +905,7 @@ export default function Docs() {
                     <div className="flex flex-col items-center justify-center h-64 bg-card border border-border rounded-lg gap-3">
                       <Paperclip className="h-10 w-10 text-muted-foreground/40" />
                       <p className="text-sm text-muted-foreground">Pré-visualização não disponível para este formato</p>
-                      <a href={previewUrl} download={d.file_name ?? undefined} className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Baixar arquivo</a>
+                      <button onClick={() => downloadFile(d.file_path!, d.file_name)} className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Baixar arquivo</button>
                     </div>
                   )}
                   {d.content && (
