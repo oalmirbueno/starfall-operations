@@ -40,7 +40,7 @@ export default function Docs() {
     createCompany, removeCompany,
     createProject, removeProject,
     createDocument, updateDocument, removeDocument,
-    uploadFile, getFileUrl,
+    uploadFile, getFileUrl, downloadFile,
     listVersions, restoreVersion,
   } = useDocs();
 
