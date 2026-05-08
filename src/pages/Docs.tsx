@@ -320,6 +320,9 @@ export default function Docs() {
             className={`p-1 rounded ${d.favorite ? "text-warning" : "text-muted-foreground hover:text-warning"}`} title={d.favorite ? "Desfavoritar" : "Favoritar"}>
             <Star className={`h-3 w-3 ${d.favorite ? "fill-current" : ""}`} />
           </button>
+          {d.file_path && (
+            <button onClick={(e) => { e.stopPropagation(); downloadFile(d.file_path!, d.file_name); }} className="p-1 rounded text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3 w-3" /></button>
+          )}
           <button onClick={(e) => { e.stopPropagation(); openEditDoc(d); }} className="p-1 rounded text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-3 w-3" /></button>
           <button onClick={(e) => { e.stopPropagation(); if (confirm("Remover este documento?")) removeDocument.mutate(d); }} className="p-1 rounded text-muted-foreground hover:text-destructive" title="Remover"><Trash2 className="h-3 w-3" /></button>
         </div>
