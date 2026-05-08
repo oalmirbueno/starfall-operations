@@ -295,7 +295,7 @@ export function useDocs() {
     createCompany, updateCompany, removeCompany,
     createProject, updateProject, removeProject,
     createDocument, updateDocument, removeDocument,
-    uploadFile, getFileUrl,
+    uploadFile, getFileUrl, downloadFile,
     listVersions, restoreVersion,
   };
 }
