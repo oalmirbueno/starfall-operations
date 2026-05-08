@@ -346,28 +346,65 @@ export default function Docs() {
 
   return (
     <div className="space-y-6 animate-fade-in w-full max-w-none">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Documentação</h1>
-          <p className="text-sm text-muted-foreground mt-1">Empresas → Projetos → Documentos. Tudo num só lugar.</p>
+      <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Documentação</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 hidden sm:block">Empresas → Projetos → Documentos. Tudo num só lugar.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setCName(""); setCWebsite(""); setCDesc(""); setCompanyDlg(true); }}>
-            <Building2 className="h-3.5 w-3.5" /> Nova Empresa
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <Button size="sm" variant="outline" className="lg:hidden gap-1.5 h-9 px-2.5" onClick={() => setMobileSidebarOpen(true)} aria-label="Abrir biblioteca">
+            <Menu className="h-4 w-4" /> <span className="text-xs">Biblioteca</span>
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setPName(""); setPDesc(""); setPParent(""); setPCompany(selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")); setProjectDlg(true); }} disabled={!companies.data?.length}>
-            <FolderKanban className="h-3.5 w-3.5" /> Nova Pasta
+          <Button size="sm" variant="outline" className="gap-1.5 h-9 px-2.5" onClick={() => { setCName(""); setCWebsite(""); setCDesc(""); setCompanyDlg(true); }}>
+            <Building2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Nova Empresa</span>
           </Button>
-          <Button size="sm" className="gap-1.5" onClick={() => { resetDoc(); setDocDlg(true); }}>
-            <Plus className="h-3.5 w-3.5" /> Novo Documento
+          <Button size="sm" variant="outline" className="gap-1.5 h-9 px-2.5" onClick={() => { setPName(""); setPDesc(""); setPParent(""); setPCompany(selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")); setProjectDlg(true); }} disabled={!companies.data?.length}>
+            <FolderKanban className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Nova Pasta</span>
+          </Button>
+          <Button size="sm" className="gap-1.5 h-9 px-2.5" onClick={() => { resetDoc(); setDocDlg(true); }}>
+            <Plus className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Novo Documento</span><span className="sm:hidden text-xs">Novo</span>
           </Button>
         </div>
       </div>
 
+      {/* Mobile sidebar drawer */}
+      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+        <SheetContent side="left" className="p-0 w-[88vw] max-w-sm flex flex-col">
+          <SheetHeader className="px-4 pt-4 pb-2">
+            <SheetTitle className="text-sm">Biblioteca</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-hidden flex">
+            <DocsSidebar
+              className="flex-1 bg-transparent border-0 rounded-none overflow-hidden flex flex-col"
+              documents={documents.data ?? []}
+              companies={companies.data ?? []}
+              projects={projects.data ?? []}
+              categoryFilter={categoryFilter}
+              setCategoryFilter={(v) => { setCategoryFilter(v); setMobileSidebarOpen(false); }}
+              favoritesOnly={favoritesOnly}
+              setFavoritesOnly={(v) => { setFavoritesOnly(v); }}
+              selectedCompany={selectedCompany}
+              setSelectedCompany={(v) => { setSelectedCompany(v); setSelectedProject("all"); }}
+              selectedProject={selectedProject}
+              setSelectedProject={(v) => { setSelectedProject(v); setMobileSidebarOpen(false); }}
+              allCategories={allCategories}
+              onNewProject={(parentId, companyId) => {
+                setPName(""); setPDesc("");
+                setPCompany(companyId ?? (selectedCompany !== "all" ? selectedCompany : (companies.data?.[0]?.id ?? "")));
+                setPParent(parentId ?? "");
+                setProjectDlg(true);
+                setMobileSidebarOpen(false);
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <div className="grid grid-cols-12 gap-4">
-        {/* Sidebar — Categorias (navegação principal) */}
-        <DocsSidebar
-          documents={documents.data ?? []}
+        {/* Sidebar — Categorias (navegação principal) — desktop only */}
+        <div className="hidden lg:contents">
+          <DocsSidebar
+            documents={documents.data ?? []}
           companies={companies.data ?? []}
           projects={projects.data ?? []}
           categoryFilter={categoryFilter}
