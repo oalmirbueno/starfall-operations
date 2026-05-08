@@ -907,7 +907,7 @@ export default function Docs() {
                 className={`p-1.5 ${showHistory ? "text-primary bg-primary/10 rounded" : "text-muted-foreground hover:text-primary"}`} title="Histórico"><History className="h-3.5 w-3.5" /></button>
               <button onClick={() => openEditDoc(d)} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-3.5 w-3.5" /></button>
               <button onClick={() => setPreviewMode(previewMode === "dock" ? "modal" : "dock")}
-                className="p-1.5 text-muted-foreground hover:text-primary" title={previewMode === "dock" ? "Expandir" : "Reduzir"}>
+                className="hidden lg:inline-flex p-1.5 text-muted-foreground hover:text-primary" title={previewMode === "dock" ? "Expandir" : "Reduzir"}>
                 {previewMode === "dock" ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
               </button>
               <button onClick={closePreview} className="p-1.5 text-muted-foreground hover:text-foreground" title="Fechar"><X className="h-3.5 w-3.5" /></button>
