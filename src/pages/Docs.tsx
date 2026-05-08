@@ -905,7 +905,7 @@ export default function Docs() {
                     <div className="flex flex-col items-center justify-center h-64 bg-card border border-border rounded-lg gap-3">
                       <Paperclip className="h-10 w-10 text-muted-foreground/40" />
                       <p className="text-sm text-muted-foreground">Pré-visualização não disponível para este formato</p>
-                      <a href={previewUrl} download={d.file_name ?? undefined} className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Baixar arquivo</a>
+                      <button onClick={() => downloadFile(d.file_path!, d.file_name)} className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Baixar arquivo</button>
                     </div>
                   )}
                   {d.content && (
