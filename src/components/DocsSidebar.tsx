@@ -116,7 +116,7 @@ export function DocsSidebar({
   };
 
   return (
-    <aside className="col-span-12 lg:col-span-3 xl:col-span-3 2xl:col-span-2 bg-card border border-border rounded-lg overflow-hidden flex flex-col max-h-[80vh]">
+    <aside className={className ?? "col-span-12 lg:col-span-3 xl:col-span-3 2xl:col-span-2 bg-card border border-border rounded-lg overflow-hidden flex flex-col max-h-[80vh]"}>
       <div className="px-3 pt-3 pb-2 border-b border-border/60">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Biblioteca</h3>
