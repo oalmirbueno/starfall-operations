@@ -267,6 +267,15 @@ export default function Docs() {
     else toast.error("Não foi possível abrir o arquivo");
   };
 
+  const buildDownloadName = (d: DocItem): string => {
+    const orig = d.file_name ?? d.file_path?.split("/").pop() ?? "";
+    const dot = orig.lastIndexOf(".");
+    const ext = dot > 0 ? orig.slice(dot) : "";
+    const base = (d.title ?? "arquivo").trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").slice(0, 120) || "arquivo";
+    return base.toLowerCase().endsWith(ext.toLowerCase()) ? base : base + ext;
+  };
+  const downloadDoc = (d: DocItem) => { if (d.file_path) downloadFile(d.file_path, buildDownloadName(d)); };
+
   const isLoading = companies.isLoading || projects.isLoading || documents.isLoading;
   if (isLoading) {
     return (
@@ -321,7 +330,7 @@ export default function Docs() {
             <Star className={`h-3 w-3 ${d.favorite ? "fill-current" : ""}`} />
           </button>
           {d.file_path && (
-            <button onClick={(e) => { e.stopPropagation(); downloadFile(d.file_path!, d.file_name); }} className="p-1 rounded text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3 w-3" /></button>
+            <button onClick={(e) => { e.stopPropagation(); downloadDoc(d); }} className="p-1 rounded text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3 w-3" /></button>
           )}
           <button onClick={(e) => { e.stopPropagation(); openEditDoc(d); }} className="p-1 rounded text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-3 w-3" /></button>
           <button onClick={(e) => { e.stopPropagation(); if (confirm("Remover este documento?")) removeDocument.mutate(d); }} className="p-1 rounded text-muted-foreground hover:text-destructive" title="Remover"><Trash2 className="h-3 w-3" /></button>
@@ -850,7 +859,7 @@ export default function Docs() {
             </div>
             <div className="flex items-center gap-0.5 shrink-0">
               {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer" className="p-1.5 text-muted-foreground hover:text-primary" title="Abrir em nova aba"><ExternalLink className="h-3.5 w-3.5" /></a>}
-              {d.file_path && <button onClick={() => downloadFile(d.file_path!, d.file_name)} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3.5 w-3.5" /></button>}
+              {d.file_path && <button onClick={() => downloadDoc(d)} className="p-1.5 text-muted-foreground hover:text-primary" title="Baixar"><Download className="h-3.5 w-3.5" /></button>}
               <button onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadVersions(d.id); }}
                 className={`p-1.5 ${showHistory ? "text-primary bg-primary/10 rounded" : "text-muted-foreground hover:text-primary"}`} title="Histórico"><History className="h-3.5 w-3.5" /></button>
               <button onClick={() => openEditDoc(d)} className="p-1.5 text-muted-foreground hover:text-primary" title="Editar"><Edit className="h-3.5 w-3.5" /></button>
@@ -908,7 +917,7 @@ export default function Docs() {
                     <div className="flex flex-col items-center justify-center h-64 bg-card border border-border rounded-lg gap-3">
                       <Paperclip className="h-10 w-10 text-muted-foreground/40" />
                       <p className="text-sm text-muted-foreground">Pré-visualização não disponível para este formato</p>
-                      <button onClick={() => downloadFile(d.file_path!, d.file_name)} className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Baixar arquivo</button>
+                      <button onClick={() => downloadDoc(d)} className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Baixar arquivo</button>
                     </div>
                   )}
                   {d.content && (
