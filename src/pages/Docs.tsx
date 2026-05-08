@@ -916,7 +916,7 @@ export default function Docs() {
         );
 
         const Body = (
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
             <div className="flex-1 overflow-auto p-4 bg-secondary/10">
               {d.doc_type === "text" && (
                 d.content
