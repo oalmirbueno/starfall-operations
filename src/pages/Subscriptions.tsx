@@ -144,14 +144,23 @@ export default function Subscriptions() {
   };
 
   const markPaid = async (s: SubscriptionRow) => {
-    const nextDate = s.next_renewal ? getNextRenewal(s.next_renewal, s.cycle) : null;
+    // Avança a renovação até cair no futuro (quita atrasos acumulados)
+    let nextDate: string | null = s.next_renewal;
+    if (nextDate) {
+      const today = new Date().toISOString().split("T")[0];
+      let guard = 0;
+      while (nextDate && nextDate <= today && guard < 60) {
+        nextDate = getNextRenewal(nextDate, s.cycle);
+        guard++;
+      }
+    }
     await update.mutateAsync({
       id: s.id,
       payment_status: "pago",
       last_paid_at: new Date().toISOString(),
       ...(nextDate ? { next_renewal: nextDate } : {}),
     } as any);
-    toast.success(`${s.provider} pago — renovação avançada para ${nextDate ?? "próximo ciclo"}`);
+    toast.success(`${s.provider} pago — próxima renovação ${nextDate ?? "—"}`);
     setTimeout(() => { computeAlerts.mutate(); invalidateAll(); }, 300);
   };
 
