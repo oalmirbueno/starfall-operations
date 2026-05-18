@@ -103,15 +103,6 @@ export default function Dashboard() {
         </div>
       )}
 
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Progresso Mês</div>
-          <div className="text-xl font-bold text-foreground">{progressPct}%</div>
-          <div className="w-full bg-secondary rounded-full h-1.5 mt-2">
-            <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
-          </div>
-          <div className="text-[10px] text-muted-foreground mt-1">Projeção anual: R$ {(monthlyTotal * 12).toFixed(0)}</div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4">
           <div className="label-sm mb-3">Evolução de Custo Mensal</div>
