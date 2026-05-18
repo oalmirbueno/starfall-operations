@@ -51,7 +51,7 @@ export function useCostAnalytics() {
     .map(item => ({
       id: item.id,
       label: item.provider + (item.account ? ` (${item.account})` : ""),
-      value: monthlyValue(Number(item.value), item.cycle),
+      value: monthlyValue(item),
       kind: "subscription",
     }))
     .sort((a, b) => b.value - a.value)
@@ -59,23 +59,37 @@ export function useCostAnalytics() {
 
   // Total mensal = soma das assinaturas ativas (que já incluem VPS etc)
   const monthlyTotal = activeSubscriptions.reduce(
-    (acc, item) => acc + monthlyValue(Number(item.value), item.cycle),
+    (acc, item) => acc + monthlyValue(item),
     0,
   );
 
-  // Payment breakdown
+  // Payment breakdown — agora baseado no CALENDÁRIO REAL do mês atual
   const totalPago = activeSubscriptions
-    .filter(s => (s as any).payment_status === "pago")
-    .reduce((acc, s) => acc + monthlyValue(Number(s.value), s.cycle), 0);
+    .filter(s => isPaidCurrentPeriod(s))
+    .reduce((acc, s) => acc + monthlyValue(s), 0);
 
   const totalPendente = activeSubscriptions
-    .filter(s => (s as any).payment_status !== "pago")
-    .reduce((acc, s) => acc + monthlyValue(Number(s.value), s.cycle), 0);
+    .filter(s => !isPaidCurrentPeriod(s))
+    .reduce((acc, s) => acc + monthlyValue(s), 0);
+
+  // Pendências de meses anteriores (atrasadas)
+  const overdueSubscriptions = activeSubscriptions
+    .filter(s => isOverdue(s))
+    .map(s => ({ sub: s, months: monthsOverdue(s), monthly: monthlyValue(s) }))
+    .sort((a, b) => b.months - a.months || b.monthly - a.monthly);
+
+  const overdueTotal = overdueSubscriptions.reduce(
+    (acc, x) => acc + x.monthly * Math.max(1, x.months),
+    0,
+  );
 
   return {
     monthlyTotal,
     totalPago,
     totalPendente,
+    overdueSubscriptions,
+    overdueTotal,
+    overdueCount: overdueSubscriptions.length,
     activeServices: activeSubscriptions.length,
     monthlyTrend: trendQuery.data ?? [],
     categoryBreakdown: breakdownQuery.data ?? [],
@@ -87,3 +101,4 @@ export function useCostAnalytics() {
     error: trendQuery.error || breakdownQuery.error,
   };
 }
+
