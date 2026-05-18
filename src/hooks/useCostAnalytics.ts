@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useInfrastructure } from "./useInfrastructure";
 import { useSubscriptions } from "./useSubscriptions";
+import { monthlyValue, isPaidCurrentPeriod, isOverdue, monthsOverdue } from "@/lib/billing";
 
 const db = supabase as any;
 
@@ -14,12 +15,6 @@ const COLORS = [
   "hsl(var(--muted-foreground))",
   "hsl(var(--primary) / 0.55)",
 ];
-
-function monthlyValue(value: number, cycle: string): number {
-  if (cycle === "anual") return value / 12;
-  if (cycle === "trimestral") return value / 3;
-  return value;
-}
 
 export function useCostAnalytics() {
   const { user } = useAuth();
