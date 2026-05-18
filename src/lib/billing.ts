@@ -40,37 +40,39 @@ export function isPendingThisMonth(s: SubscriptionRow): boolean {
 }
 
 /**
- * Atrasada de mês(es) anterior(es) — não paga no período corrente
- * e cuja data de renovação já passou do início do mês atual,
+ * Atrasada — assinatura ativa, não paga no período corrente,
+ * e cuja data de renovação já venceu (anterior a hoje),
  * ou o último pagamento é mais antigo do que o ciclo permite.
  */
 export function isOverdue(s: SubscriptionRow): boolean {
   if (s.status !== "ativo") return false;
   if (isPaidCurrentPeriod(s)) return false;
-  const som = startOfMonth();
-  if (s.next_renewal && new Date(s.next_renewal) < som) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (s.next_renewal && new Date(s.next_renewal) < today) return true;
   const lp = (s as any).last_paid_at as string | null | undefined;
   if (lp) {
     const paid = new Date(lp);
-    if (s.cycle === "mensal" && paid < new Date(som.getFullYear(), som.getMonth() - 1, 1)) return true;
-    if (s.cycle === "trimestral" && (Date.now() - paid.getTime()) / 86_400_000 > 90) return true;
-    if (s.cycle === "anual" && (Date.now() - paid.getTime()) / 86_400_000 > 365) return true;
+    const days = (Date.now() - paid.getTime()) / 86_400_000;
+    if (s.cycle === "mensal" && days > 31) return true;
+    if (s.cycle === "trimestral" && days > 92) return true;
+    if (s.cycle === "anual" && days > 366) return true;
   }
   return false;
 }
 
-/** Quantos meses de atraso (aproximado, apenas para mensais) */
+/** Quantos meses de atraso (mínimo 1 quando overdue) */
 export function monthsOverdue(s: SubscriptionRow): number {
-  const som = startOfMonth();
+  const today = new Date();
   const lp = (s as any).last_paid_at as string | null | undefined;
   if (lp) {
     const paid = new Date(lp);
-    const months = (som.getFullYear() - paid.getFullYear()) * 12 + (som.getMonth() - paid.getMonth());
-    return Math.max(0, months);
+    const months = (today.getFullYear() - paid.getFullYear()) * 12 + (today.getMonth() - paid.getMonth());
+    return Math.max(1, months);
   }
   if (s.next_renewal) {
     const nr = new Date(s.next_renewal);
-    const months = (som.getFullYear() - nr.getFullYear()) * 12 + (som.getMonth() - nr.getMonth());
+    const months = (today.getFullYear() - nr.getFullYear()) * 12 + (today.getMonth() - nr.getMonth());
     return Math.max(1, months);
   }
   return 1;
