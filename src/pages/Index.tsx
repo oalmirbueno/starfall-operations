@@ -1,4 +1,4 @@
-import { DollarSign, TrendingUp, AlertTriangle, ShieldAlert, Calendar, ArrowUpRight, Check, CircleDollarSign } from "lucide-react";
+import { DollarSign, TrendingUp, AlertTriangle, ShieldAlert, Calendar, ArrowUpRight, Check, CircleDollarSign, Clock } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
@@ -24,7 +24,7 @@ export default function Dashboard() {
   const { subscriptions, isLoading: subscriptionsLoading } = useSubscriptions();
   const { alerts, isLoading: alertsLoading } = useAlerts();
   const { opportunities, isLoading: opportunitiesLoading } = useOpportunities();
-  const { monthlyTotal, totalPago, totalPendente, monthlyTrend, categoryBreakdown, topSpenders, isLoading: costsLoading } = useCostAnalytics();
+  const { monthlyTotal, totalPago, totalPendente, monthlyTrend, categoryBreakdown, topSpenders, overdueSubscriptions, overdueTotal, overdueCount, isLoading: costsLoading } = useCostAnalytics();
 
   const criticalAlerts = alerts.filter(item => item.urgency === "critico");
   const pendingOpps = opportunities.filter(item => item.status === "a_avaliar" || item.status === "pendente");
@@ -61,9 +61,9 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <StatCard label="Custo Mensal" value={`R$ ${monthlyTotal.toFixed(2)}`} icon={DollarSign} accent />
-        <StatCard label="Já Pago" value={`R$ ${totalPago.toFixed(2)}`} icon={Check} />
-        <StatCard label="Pendente" value={`R$ ${totalPendente.toFixed(2)}`} icon={CircleDollarSign} />
-        <StatCard label="Alertas Críticos" value={String(criticalAlerts.length)} icon={AlertTriangle} accent />
+        <StatCard label="Pago no mês" value={`R$ ${totalPago.toFixed(2)}`} icon={Check} />
+        <StatCard label="Pendente do mês" value={`R$ ${totalPendente.toFixed(2)}`} icon={CircleDollarSign} />
+        <StatCard label="Atrasadas" value={`R$ ${overdueTotal.toFixed(2)}`} icon={Clock} trend={overdueCount > 0 ? `${overdueCount} de meses anteriores` : undefined} trendUp={false} />
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Progresso Mês</div>
           <div className="text-xl font-bold text-foreground">{progressPct}%</div>
@@ -73,6 +73,35 @@ export default function Dashboard() {
           <div className="text-[10px] text-muted-foreground mt-1">Projeção anual: R$ {(monthlyTotal * 12).toFixed(0)}</div>
         </div>
       </div>
+
+      {overdueCount > 0 && (
+        <div className="bg-card border border-warning/40 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-warning/5 border-b border-warning/20">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <div>
+                <div className="text-sm font-semibold text-foreground">Pendências de meses anteriores</div>
+                <div className="text-[11px] text-muted-foreground">{overdueCount} {overdueCount === 1 ? "assinatura em atraso" : "assinaturas em atraso"} · acumulado R$ {overdueTotal.toFixed(2)}</div>
+              </div>
+            </div>
+            <a href="/assinaturas" className="text-[11px] text-warning hover:underline">Resolver agora →</a>
+          </div>
+          <div className="divide-y divide-border/40">
+            {overdueSubscriptions.slice(0, 5).map(({ sub, months, monthly }) => (
+              <div key={sub.id} className="flex items-center justify-between px-4 py-2.5">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">{sub.provider}{sub.account ? <span className="text-[10px] text-muted-foreground font-mono ml-1.5">{sub.account}</span> : null}</div>
+                  <div className="text-[11px] text-muted-foreground">{months > 0 ? `${months} ${months === 1 ? "mês" : "meses"} em atraso` : "vencido"}{sub.next_renewal ? <> · venceu <span className="font-mono">{sub.next_renewal}</span></> : null}</div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-sm font-mono font-bold text-warning">R$ {(monthly * Math.max(1, months)).toFixed(2)}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">R$ {monthly.toFixed(2)}/mês</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4">

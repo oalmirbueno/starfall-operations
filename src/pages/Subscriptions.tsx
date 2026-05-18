@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSubscriptions, SubscriptionRow } from "@/hooks/useSubscriptions";
 import { useAlerts } from "@/hooks/useAlerts";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign, DollarSign, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign, DollarSign, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { monthlyValue as monthlyValueOf, isPaidCurrentPeriod, isOverdue, monthsOverdue } from "@/lib/billing";
 
 const defaultForm = {
   provider: "", account: "", plan: "", value: 0, currency: "BRL",
@@ -30,10 +31,7 @@ function getNextRenewal(current: string, cycle: string): string {
 
 /** Normaliza valor mensal independente do ciclo */
 function monthlyValue(s: SubscriptionRow): number {
-  const v = Number(s.value);
-  if (s.cycle === "anual") return v / 12;
-  if (s.cycle === "trimestral") return v / 3;
-  return v;
+  return monthlyValueOf(s);
 }
 
 type SortKey = "renewal" | "value" | "provider" | "payment" | "updated";
@@ -57,22 +55,32 @@ export default function Subscriptions() {
 
   const activeSubscriptions = subscriptions.filter(s => s.status === "ativo");
 
-  // Cost calculations
+  // Cost calculations — agora baseado no CALENDÁRIO REAL do mês corrente
   const totalMensal = activeSubscriptions.reduce((sum, s) => sum + monthlyValue(s), 0);
   const totalPago = activeSubscriptions
-    .filter(s => (s as any).payment_status === "pago")
+    .filter(s => isPaidCurrentPeriod(s))
     .reduce((sum, s) => sum + monthlyValue(s), 0);
   const totalPendente = activeSubscriptions
-    .filter(s => (s as any).payment_status !== "pago")
+    .filter(s => !isPaidCurrentPeriod(s))
     .reduce((sum, s) => sum + monthlyValue(s), 0);
-  const pendingCount = activeSubscriptions.filter(s => (s as any).payment_status !== "pago").length;
-  const paidCount = activeSubscriptions.filter(s => (s as any).payment_status === "pago").length;
+  const pendingCount = activeSubscriptions.filter(s => !isPaidCurrentPeriod(s)).length;
+  const paidCount = activeSubscriptions.filter(s => isPaidCurrentPeriod(s)).length;
+
+  // Atrasadas (pendências de meses anteriores)
+  const overdueList = activeSubscriptions
+    .filter(s => isOverdue(s))
+    .map(s => ({ s, months: monthsOverdue(s), monthly: monthlyValue(s) }))
+    .sort((a, b) => b.months - a.months || b.monthly - a.monthly);
+  const overdueCount = overdueList.length;
+  const overdueTotal = overdueList.reduce((acc, x) => acc + x.monthly * Math.max(1, x.months), 0);
 
   const filtered = subscriptions.filter(s => {
     const matchSearch = s.provider.toLowerCase().includes(search.toLowerCase()) || (s.account ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCategory = categoryFilter === "all" || s.category === categoryFilter;
-    const ps = (s as any).payment_status ?? "pendente";
-    const matchPayment = paymentFilter === "all" || ps === paymentFilter;
+    let matchPayment = true;
+    if (paymentFilter === "pago") matchPayment = isPaidCurrentPeriod(s);
+    else if (paymentFilter === "pendente") matchPayment = s.status === "ativo" && !isPaidCurrentPeriod(s);
+    else if (paymentFilter === "atrasada") matchPayment = isOverdue(s);
     return matchSearch && matchCategory && matchPayment;
   }).sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
@@ -84,9 +92,8 @@ export default function Subscriptions() {
     if (sortKey === "value") return (monthlyValue(a) - monthlyValue(b)) * dir;
     if (sortKey === "provider") return a.provider.localeCompare(b.provider) * dir;
     if (sortKey === "payment") {
-      // pendente primeiro em asc, pago primeiro em desc
-      const pa = ((a as any).payment_status ?? "pendente") === "pago" ? 1 : 0;
-      const pb = ((b as any).payment_status ?? "pendente") === "pago" ? 1 : 0;
+      const pa = isPaidCurrentPeriod(a) ? 1 : 0;
+      const pb = isPaidCurrentPeriod(b) ? 1 : 0;
       return (pa - pb) * dir;
     }
     return (new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()) * dir;
@@ -137,14 +144,23 @@ export default function Subscriptions() {
   };
 
   const markPaid = async (s: SubscriptionRow) => {
-    const nextDate = s.next_renewal ? getNextRenewal(s.next_renewal, s.cycle) : null;
+    // Avança a renovação até cair no futuro (quita atrasos acumulados)
+    let nextDate: string | null = s.next_renewal;
+    if (nextDate) {
+      const today = new Date().toISOString().split("T")[0];
+      let guard = 0;
+      while (nextDate && nextDate <= today && guard < 60) {
+        nextDate = getNextRenewal(nextDate, s.cycle);
+        guard++;
+      }
+    }
     await update.mutateAsync({
       id: s.id,
       payment_status: "pago",
       last_paid_at: new Date().toISOString(),
       ...(nextDate ? { next_renewal: nextDate } : {}),
     } as any);
-    toast.success(`${s.provider} pago — renovação avançada para ${nextDate ?? "próximo ciclo"}`);
+    toast.success(`${s.provider} pago — próxima renovação ${nextDate ?? "—"}`);
     setTimeout(() => { computeAlerts.mutate(); invalidateAll(); }, 300);
   };
 
@@ -176,21 +192,28 @@ export default function Subscriptions() {
           className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "all" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
           <div className="flex items-center gap-1.5 mb-1"><DollarSign className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Mensal</span></div>
           <div className="text-lg font-bold text-foreground font-mono">R$ {totalMensal.toFixed(2)}</div>
-          <div className="text-[10px] text-muted-foreground">{activeSubscriptions.length} assinaturas ativas</div>
+          <div className="text-[10px] text-muted-foreground">{activeSubscriptions.length} ativas</div>
         </button>
 
         <button onClick={() => setPaymentFilter(paymentFilter === "pago" ? "all" : "pago")}
           className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "pago" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
-          <div className="flex items-center gap-1.5 mb-1"><Check className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Já Pago</span></div>
+          <div className="flex items-center gap-1.5 mb-1"><Check className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Pago no mês</span></div>
           <div className="text-lg font-bold text-primary font-mono">R$ {totalPago.toFixed(2)}</div>
-          <div className="text-[10px] text-muted-foreground">{paidCount} pagas</div>
+          <div className="text-[10px] text-muted-foreground">{paidCount} pagas neste mês</div>
         </button>
 
         <button onClick={() => setPaymentFilter(paymentFilter === "pendente" ? "all" : "pendente")}
           className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "pendente" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
-          <div className="flex items-center gap-1.5 mb-1"><CircleDollarSign className="h-3.5 w-3.5 text-destructive" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Pendente</span></div>
+          <div className="flex items-center gap-1.5 mb-1"><CircleDollarSign className="h-3.5 w-3.5 text-destructive" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Pendente do mês</span></div>
           <div className="text-lg font-bold text-destructive font-mono">R$ {totalPendente.toFixed(2)}</div>
           <div className="text-[10px] text-muted-foreground">{pendingCount} a pagar</div>
+        </button>
+
+        <button onClick={() => setPaymentFilter(paymentFilter === "atrasada" ? "all" : "atrasada")}
+          className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "atrasada" ? "border-warning ring-1 ring-warning" : overdueCount > 0 ? "border-warning/40 hover:border-warning" : "border-border hover:border-primary/30"}`}>
+          <div className="flex items-center gap-1.5 mb-1"><AlertTriangle className="h-3.5 w-3.5 text-warning" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Atrasadas</span></div>
+          <div className="text-lg font-bold text-warning font-mono">R$ {overdueTotal.toFixed(2)}</div>
+          <div className="text-[10px] text-muted-foreground">{overdueCount} de meses anteriores</div>
         </button>
 
         <div className="bg-card border border-border rounded-lg p-3">
@@ -199,14 +222,47 @@ export default function Subscriptions() {
           <div className="w-full bg-secondary rounded-full h-1.5 mt-1">
             <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${totalMensal > 0 ? (totalPago / totalMensal) * 100 : 0}%` }} />
           </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Projeção Anual</div>
-          <div className="text-lg font-bold text-foreground font-mono">R$ {(totalMensal * 12).toFixed(0)}</div>
-          <div className="text-[10px] text-muted-foreground">12 meses</div>
+          <div className="text-[10px] text-muted-foreground mt-1 font-mono">Anual R$ {(totalMensal * 12).toFixed(0)}</div>
         </div>
       </div>
+
+      {/* Painel de pendências de meses anteriores */}
+      {overdueCount > 0 && (
+        <div className="bg-card border border-warning/40 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-warning/5 border-b border-warning/20">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <div>
+                <div className="text-sm font-semibold text-foreground">Pendências de meses anteriores</div>
+                <div className="text-[11px] text-muted-foreground">{overdueCount} {overdueCount === 1 ? "assinatura em atraso" : "assinaturas em atraso"} · acumulado R$ {overdueTotal.toFixed(2)}</div>
+              </div>
+            </div>
+            <button onClick={() => setPaymentFilter("atrasada")} className="text-[11px] text-warning hover:underline">Ver todas</button>
+          </div>
+          <div className="divide-y divide-border/40 max-h-64 overflow-y-auto">
+            {overdueList.slice(0, 6).map(({ s, months, monthly }) => (
+              <div key={s.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-secondary/20">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">{s.provider} {s.account && <span className="text-[10px] text-muted-foreground font-mono ml-1">{s.account}</span>}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {months > 0 ? `${months} ${months === 1 ? "mês" : "meses"} em atraso` : "vencido"}
+                    {s.next_renewal && <> · venceu em <span className="font-mono">{s.next_renewal}</span></>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right">
+                    <div className="text-sm font-mono font-bold text-warning">R$ {(monthly * Math.max(1, months)).toFixed(2)}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">R$ {monthly.toFixed(2)}/mês</div>
+                  </div>
+                  <button onClick={() => markPaid(s)} className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20">
+                    <Check className="h-3 w-3" /> Quitar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -261,12 +317,16 @@ export default function Subscriptions() {
               </thead>
               <tbody>
                 {filtered.map(s => {
-                  const ps = (s as any).payment_status ?? "pendente";
-                  const isPaid = ps === "pago";
+                  const isPaid = isPaidCurrentPeriod(s);
+                  const overdue = isOverdue(s);
+                  const months = overdue ? monthsOverdue(s) : 0;
                   return (
-                    <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${!isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
+                    <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${overdue ? "bg-warning/[0.04]" : !isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-foreground">{s.provider}</div>
+                        <div className="font-medium text-foreground flex items-center gap-1.5">
+                          {s.provider}
+                          {overdue && <span title={`${months} ${months === 1 ? "mês" : "meses"} em atraso`} className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning"><AlertTriangle className="h-2.5 w-2.5" />{months > 0 ? `${months}m` : "atraso"}</span>}
+                        </div>
                         {s.account && <div className="text-[10px] text-muted-foreground font-mono">{s.account}</div>}
                       </td>
                       <td className="px-4 py-3 text-foreground">{s.plan ?? "—"}</td>
@@ -281,8 +341,8 @@ export default function Subscriptions() {
                           </button>
                         ) : (
                           <button onClick={() => markPaid(s)}
-                            className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
-                            <CircleDollarSign className="h-3 w-3" /> Pagar
+                            className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors ${overdue ? "bg-warning/15 text-warning hover:bg-warning/25" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}>
+                            <CircleDollarSign className="h-3 w-3" /> {overdue ? "Quitar" : "Pagar"}
                           </button>
                         )}
                       </td>
