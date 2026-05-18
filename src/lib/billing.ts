@@ -40,23 +40,20 @@ export function isPendingThisMonth(s: SubscriptionRow): boolean {
 }
 
 /**
- * Atrasada — assinatura ativa, não paga no período corrente,
- * e cuja data de renovação já venceu (anterior a hoje),
- * ou o último pagamento é mais antigo do que o ciclo permite.
+ * Atrasada — assinatura ativa, não paga, com vencimento em mês(es) ANTERIOR(es).
+ * Itens vencidos dentro do mês corrente são apenas "pendentes do mês".
  */
 export function isOverdue(s: SubscriptionRow): boolean {
   if (s.status !== "ativo") return false;
   if (isPaidCurrentPeriod(s)) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  if (s.next_renewal && new Date(s.next_renewal) < today) return true;
+  const som = startOfMonth();
+  if (s.next_renewal && new Date(s.next_renewal) < som) return true;
   const lp = (s as any).last_paid_at as string | null | undefined;
   if (lp) {
     const paid = new Date(lp);
-    const days = (Date.now() - paid.getTime()) / 86_400_000;
-    if (s.cycle === "mensal" && days > 31) return true;
-    if (s.cycle === "trimestral" && days > 92) return true;
-    if (s.cycle === "anual" && days > 366) return true;
+    if (s.cycle === "mensal" && paid < new Date(som.getFullYear(), som.getMonth() - 1, 1)) return true;
+    if (s.cycle === "trimestral" && (Date.now() - paid.getTime()) / 86_400_000 > 92) return true;
+    if (s.cycle === "anual" && (Date.now() - paid.getTime()) / 86_400_000 > 366) return true;
   }
   return false;
 }
