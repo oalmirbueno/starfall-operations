@@ -55,22 +55,32 @@ export default function Subscriptions() {
 
   const activeSubscriptions = subscriptions.filter(s => s.status === "ativo");
 
-  // Cost calculations
+  // Cost calculations — agora baseado no CALENDÁRIO REAL do mês corrente
   const totalMensal = activeSubscriptions.reduce((sum, s) => sum + monthlyValue(s), 0);
   const totalPago = activeSubscriptions
-    .filter(s => (s as any).payment_status === "pago")
+    .filter(s => isPaidCurrentPeriod(s))
     .reduce((sum, s) => sum + monthlyValue(s), 0);
   const totalPendente = activeSubscriptions
-    .filter(s => (s as any).payment_status !== "pago")
+    .filter(s => !isPaidCurrentPeriod(s))
     .reduce((sum, s) => sum + monthlyValue(s), 0);
-  const pendingCount = activeSubscriptions.filter(s => (s as any).payment_status !== "pago").length;
-  const paidCount = activeSubscriptions.filter(s => (s as any).payment_status === "pago").length;
+  const pendingCount = activeSubscriptions.filter(s => !isPaidCurrentPeriod(s)).length;
+  const paidCount = activeSubscriptions.filter(s => isPaidCurrentPeriod(s)).length;
+
+  // Atrasadas (pendências de meses anteriores)
+  const overdueList = activeSubscriptions
+    .filter(s => isOverdue(s))
+    .map(s => ({ s, months: monthsOverdue(s), monthly: monthlyValue(s) }))
+    .sort((a, b) => b.months - a.months || b.monthly - a.monthly);
+  const overdueCount = overdueList.length;
+  const overdueTotal = overdueList.reduce((acc, x) => acc + x.monthly * Math.max(1, x.months), 0);
 
   const filtered = subscriptions.filter(s => {
     const matchSearch = s.provider.toLowerCase().includes(search.toLowerCase()) || (s.account ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCategory = categoryFilter === "all" || s.category === categoryFilter;
-    const ps = (s as any).payment_status ?? "pendente";
-    const matchPayment = paymentFilter === "all" || ps === paymentFilter;
+    let matchPayment = true;
+    if (paymentFilter === "pago") matchPayment = isPaidCurrentPeriod(s);
+    else if (paymentFilter === "pendente") matchPayment = s.status === "ativo" && !isPaidCurrentPeriod(s);
+    else if (paymentFilter === "atrasada") matchPayment = isOverdue(s);
     return matchSearch && matchCategory && matchPayment;
   }).sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
@@ -82,9 +92,8 @@ export default function Subscriptions() {
     if (sortKey === "value") return (monthlyValue(a) - monthlyValue(b)) * dir;
     if (sortKey === "provider") return a.provider.localeCompare(b.provider) * dir;
     if (sortKey === "payment") {
-      // pendente primeiro em asc, pago primeiro em desc
-      const pa = ((a as any).payment_status ?? "pendente") === "pago" ? 1 : 0;
-      const pb = ((b as any).payment_status ?? "pendente") === "pago" ? 1 : 0;
+      const pa = isPaidCurrentPeriod(a) ? 1 : 0;
+      const pb = isPaidCurrentPeriod(b) ? 1 : 0;
       return (pa - pb) * dir;
     }
     return (new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()) * dir;
