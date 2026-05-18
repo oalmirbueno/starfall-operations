@@ -308,12 +308,16 @@ export default function Subscriptions() {
               </thead>
               <tbody>
                 {filtered.map(s => {
-                  const ps = (s as any).payment_status ?? "pendente";
-                  const isPaid = ps === "pago";
+                  const isPaid = isPaidCurrentPeriod(s);
+                  const overdue = isOverdue(s);
+                  const months = overdue ? monthsOverdue(s) : 0;
                   return (
-                    <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${!isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
+                    <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${overdue ? "bg-warning/[0.04]" : !isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-foreground">{s.provider}</div>
+                        <div className="font-medium text-foreground flex items-center gap-1.5">
+                          {s.provider}
+                          {overdue && <span title={`${months} ${months === 1 ? "mês" : "meses"} em atraso`} className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning"><AlertTriangle className="h-2.5 w-2.5" />{months > 0 ? `${months}m` : "atraso"}</span>}
+                        </div>
                         {s.account && <div className="text-[10px] text-muted-foreground font-mono">{s.account}</div>}
                       </td>
                       <td className="px-4 py-3 text-foreground">{s.plan ?? "—"}</td>
@@ -328,8 +332,8 @@ export default function Subscriptions() {
                           </button>
                         ) : (
                           <button onClick={() => markPaid(s)}
-                            className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
-                            <CircleDollarSign className="h-3 w-3" /> Pagar
+                            className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors ${overdue ? "bg-warning/15 text-warning hover:bg-warning/25" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}>
+                            <CircleDollarSign className="h-3 w-3" /> {overdue ? "Quitar" : "Pagar"}
                           </button>
                         )}
                       </td>
