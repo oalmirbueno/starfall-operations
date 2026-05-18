@@ -183,21 +183,28 @@ export default function Subscriptions() {
           className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "all" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
           <div className="flex items-center gap-1.5 mb-1"><DollarSign className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Mensal</span></div>
           <div className="text-lg font-bold text-foreground font-mono">R$ {totalMensal.toFixed(2)}</div>
-          <div className="text-[10px] text-muted-foreground">{activeSubscriptions.length} assinaturas ativas</div>
+          <div className="text-[10px] text-muted-foreground">{activeSubscriptions.length} ativas</div>
         </button>
 
         <button onClick={() => setPaymentFilter(paymentFilter === "pago" ? "all" : "pago")}
           className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "pago" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
-          <div className="flex items-center gap-1.5 mb-1"><Check className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Já Pago</span></div>
+          <div className="flex items-center gap-1.5 mb-1"><Check className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Pago no mês</span></div>
           <div className="text-lg font-bold text-primary font-mono">R$ {totalPago.toFixed(2)}</div>
-          <div className="text-[10px] text-muted-foreground">{paidCount} pagas</div>
+          <div className="text-[10px] text-muted-foreground">{paidCount} pagas neste mês</div>
         </button>
 
         <button onClick={() => setPaymentFilter(paymentFilter === "pendente" ? "all" : "pendente")}
           className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "pendente" ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/30"}`}>
-          <div className="flex items-center gap-1.5 mb-1"><CircleDollarSign className="h-3.5 w-3.5 text-destructive" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Pendente</span></div>
+          <div className="flex items-center gap-1.5 mb-1"><CircleDollarSign className="h-3.5 w-3.5 text-destructive" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Pendente do mês</span></div>
           <div className="text-lg font-bold text-destructive font-mono">R$ {totalPendente.toFixed(2)}</div>
           <div className="text-[10px] text-muted-foreground">{pendingCount} a pagar</div>
+        </button>
+
+        <button onClick={() => setPaymentFilter(paymentFilter === "atrasada" ? "all" : "atrasada")}
+          className={`bg-card border rounded-lg p-3 text-left transition-all ${paymentFilter === "atrasada" ? "border-warning ring-1 ring-warning" : overdueCount > 0 ? "border-warning/40 hover:border-warning" : "border-border hover:border-primary/30"}`}>
+          <div className="flex items-center gap-1.5 mb-1"><AlertTriangle className="h-3.5 w-3.5 text-warning" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Atrasadas</span></div>
+          <div className="text-lg font-bold text-warning font-mono">R$ {overdueTotal.toFixed(2)}</div>
+          <div className="text-[10px] text-muted-foreground">{overdueCount} de meses anteriores</div>
         </button>
 
         <div className="bg-card border border-border rounded-lg p-3">
@@ -206,14 +213,47 @@ export default function Subscriptions() {
           <div className="w-full bg-secondary rounded-full h-1.5 mt-1">
             <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${totalMensal > 0 ? (totalPago / totalMensal) * 100 : 0}%` }} />
           </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Projeção Anual</div>
-          <div className="text-lg font-bold text-foreground font-mono">R$ {(totalMensal * 12).toFixed(0)}</div>
-          <div className="text-[10px] text-muted-foreground">12 meses</div>
+          <div className="text-[10px] text-muted-foreground mt-1 font-mono">Anual R$ {(totalMensal * 12).toFixed(0)}</div>
         </div>
       </div>
+
+      {/* Painel de pendências de meses anteriores */}
+      {overdueCount > 0 && (
+        <div className="bg-card border border-warning/40 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-warning/5 border-b border-warning/20">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <div>
+                <div className="text-sm font-semibold text-foreground">Pendências de meses anteriores</div>
+                <div className="text-[11px] text-muted-foreground">{overdueCount} {overdueCount === 1 ? "assinatura em atraso" : "assinaturas em atraso"} · acumulado R$ {overdueTotal.toFixed(2)}</div>
+              </div>
+            </div>
+            <button onClick={() => setPaymentFilter("atrasada")} className="text-[11px] text-warning hover:underline">Ver todas</button>
+          </div>
+          <div className="divide-y divide-border/40 max-h-64 overflow-y-auto">
+            {overdueList.slice(0, 6).map(({ s, months, monthly }) => (
+              <div key={s.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-secondary/20">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">{s.provider} {s.account && <span className="text-[10px] text-muted-foreground font-mono ml-1">{s.account}</span>}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {months > 0 ? `${months} ${months === 1 ? "mês" : "meses"} em atraso` : "vencido"}
+                    {s.next_renewal && <> · venceu em <span className="font-mono">{s.next_renewal}</span></>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right">
+                    <div className="text-sm font-mono font-bold text-warning">R$ {(monthly * Math.max(1, months)).toFixed(2)}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">R$ {monthly.toFixed(2)}/mês</div>
+                  </div>
+                  <button onClick={() => markPaid(s)} className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20">
+                    <Check className="h-3 w-3" /> Quitar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
