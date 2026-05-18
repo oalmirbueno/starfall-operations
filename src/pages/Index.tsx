@@ -1,4 +1,4 @@
-import { DollarSign, TrendingUp, AlertTriangle, ShieldAlert, Calendar, ArrowUpRight, Check, CircleDollarSign } from "lucide-react";
+import { DollarSign, TrendingUp, AlertTriangle, ShieldAlert, Calendar, ArrowUpRight, Check, CircleDollarSign, Clock } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
