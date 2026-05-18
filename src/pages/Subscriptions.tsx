@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSubscriptions, SubscriptionRow } from "@/hooks/useSubscriptions";
 import { useAlerts } from "@/hooks/useAlerts";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign, DollarSign, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign, DollarSign, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { monthlyValue as monthlyValueOf, isPaidCurrentPeriod, isOverdue, monthsOverdue } from "@/lib/billing";
 
 const defaultForm = {
   provider: "", account: "", plan: "", value: 0, currency: "BRL",
