@@ -31,10 +31,7 @@ function getNextRenewal(current: string, cycle: string): string {
 
 /** Normaliza valor mensal independente do ciclo */
 function monthlyValue(s: SubscriptionRow): number {
-  const v = Number(s.value);
-  if (s.cycle === "anual") return v / 12;
-  if (s.cycle === "trimestral") return v / 3;
-  return v;
+  return monthlyValueOf(s);
 }
 
 type SortKey = "renewal" | "value" | "provider" | "payment" | "updated";
