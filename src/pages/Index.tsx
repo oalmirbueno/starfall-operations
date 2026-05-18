@@ -24,7 +24,7 @@ export default function Dashboard() {
   const { subscriptions, isLoading: subscriptionsLoading } = useSubscriptions();
   const { alerts, isLoading: alertsLoading } = useAlerts();
   const { opportunities, isLoading: opportunitiesLoading } = useOpportunities();
-  const { monthlyTotal, totalPago, totalPendente, monthlyTrend, categoryBreakdown, topSpenders, isLoading: costsLoading } = useCostAnalytics();
+  const { monthlyTotal, totalPago, totalPendente, monthlyTrend, categoryBreakdown, topSpenders, overdueSubscriptions, overdueTotal, overdueCount, isLoading: costsLoading } = useCostAnalytics();
 
   const criticalAlerts = alerts.filter(item => item.urgency === "critico");
   const pendingOpps = opportunities.filter(item => item.status === "a_avaliar" || item.status === "pendente");
