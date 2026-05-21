@@ -2,6 +2,8 @@ const statusConfig: Record<string, { bg: string; text: string; dot: string }> = 
   ativo: { bg: "bg-primary/8", text: "text-primary", dot: "bg-primary" },
   online: { bg: "bg-primary/8", text: "text-primary", dot: "bg-primary" },
   pendente: { bg: "bg-warning/8", text: "text-warning", dot: "bg-warning" },
+  standby: { bg: "bg-info/10", text: "text-info", dot: "bg-info" },
+  pausado: { bg: "bg-info/10", text: "text-info", dot: "bg-info" },
   cancelado: { bg: "bg-destructive/8", text: "text-destructive", dot: "bg-destructive" },
   expirado: { bg: "bg-destructive/8", text: "text-destructive", dot: "bg-destructive" },
   offline: { bg: "bg-destructive/8", text: "text-destructive", dot: "bg-destructive" },
