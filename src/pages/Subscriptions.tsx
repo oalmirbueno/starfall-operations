@@ -110,7 +110,11 @@ export default function Subscriptions() {
     ? <ArrowUpDown className="inline h-3 w-3 opacity-40" />
     : sortDir === "asc" ? <ArrowUp className="inline h-3 w-3 text-primary" /> : <ArrowDown className="inline h-3 w-3 text-primary" />;
 
-  const openCreate = () => { setEditing(null); setForm(defaultForm); setFormOpen(true); };
+  const openCreate = (prefillProvider?: string) => {
+    setEditing(null);
+    setForm({ ...defaultForm, provider: prefillProvider ?? "" });
+    setFormOpen(true);
+  };
   const openEdit = (s: SubscriptionRow) => {
     setEditing(s);
     setForm({
@@ -121,6 +125,13 @@ export default function Subscriptions() {
       tags: s.tags ?? [], category: s.category ?? "",
     });
     setFormOpen(true);
+  };
+
+  const toggleStandby = async (s: SubscriptionRow) => {
+    const next = s.status === "standby" ? "ativo" : "standby";
+    await update.mutateAsync({ id: s.id, status: next } as any);
+    toast.success(next === "standby" ? `${s.provider} em standby — não cobra este mês` : `${s.provider} reativada`);
+    setTimeout(() => { computeAlerts.mutate(); invalidateAll(); }, 300);
   };
 
   const handleSubmit = async () => {
