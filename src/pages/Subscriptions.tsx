@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { monthlyValue as monthlyValueOf, isPaidCurrentPeriod, isOverdue, monthsOverdue } from "@/lib/billing";
 
 const defaultForm = {
-  provider: "", account: "", plan: "", value: 0, currency: "BRL",
+  provider: "", account: "", plan: "", usage_label: "", value: 0, currency: "BRL",
   cycle: "mensal", next_renewal: "", auto_renew: true, status: "ativo",
   responsible: "", notes: "", tags: [] as string[], category: "",
 };
