@@ -430,7 +430,8 @@ export default function Subscriptions() {
                   <th className="text-left px-4 py-3 label-sm">
                     <button onClick={() => toggleSort("provider")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Provider {sortIcon("provider")}</button>
                   </th>
-                  <th className="text-left px-4 py-3 label-sm">Plano · Uso</th>
+                  <th className="text-left px-4 py-3 label-sm">Plano</th>
+                  <th className="text-left px-4 py-3 label-sm">Uso</th>
                   <th className="text-right px-4 py-3 label-sm">
                     <button onClick={() => toggleSort("value")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Valor {sortIcon("value")}</button>
                   </th>
@@ -472,16 +473,22 @@ export default function Subscriptions() {
                           </div>
                         </td>
                         <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2">
-                            {s.plan && <span className="text-xs text-foreground/80">{s.plan}</span>}
-                            <UsageChip
-                              sub={s}
-                              allSubs={subscriptions}
-                              onSave={async (usage) => {
-                                await update.mutateAsync({ id: s.id, usage_label: usage || null } as any);
-                              }}
-                            />
-                          </div>
+                          {s.plan ? (
+                            <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-secondary/60 text-foreground/85 border border-border/60">
+                              {s.plan}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground/50">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <UsageChip
+                            sub={s}
+                            allSubs={subscriptions}
+                            onSave={async (usage) => {
+                              await update.mutateAsync({ id: s.id, usage_label: usage || null } as any);
+                            }}
+                          />
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-foreground">{s.currency} {Number(s.value).toFixed(2)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{s.cycle}</td>
@@ -550,7 +557,7 @@ export default function Subscriptions() {
                         </td>
                         <td colSpan={1} className="px-4 py-2 text-[11px] text-muted-foreground">{activeItems.length} ativas</td>
                         <td className="px-4 py-2 text-right font-mono text-xs text-foreground">R$ {groupMonthly.toFixed(2)}/mês</td>
-                        <td colSpan={4}></td>
+                        <td colSpan={5}></td>
                         <td className="px-4 py-2 text-right">
                           <button
                             onClick={() => openCreate(g.label)}
@@ -579,7 +586,7 @@ export default function Subscriptions() {
                   <td className="px-4 py-2 text-right font-mono font-bold text-foreground text-sm">
                     R$ {filtered.filter(s => s.status === "ativo").reduce((sum, s) => sum + monthlyValue(s), 0).toFixed(2)}
                   </td>
-                  <td colSpan={5} className="px-4 py-2 text-xs text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-2 text-xs text-muted-foreground">
                     {filtered.length} {filtered.length === 1 ? "item" : "itens"} exibidos
                   </td>
                 </tr>
