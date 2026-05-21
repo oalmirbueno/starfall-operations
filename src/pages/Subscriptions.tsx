@@ -430,7 +430,8 @@ export default function Subscriptions() {
                   <th className="text-left px-4 py-3 label-sm">
                     <button onClick={() => toggleSort("provider")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Provider {sortIcon("provider")}</button>
                   </th>
-                  <th className="text-left px-4 py-3 label-sm">Plano · Uso</th>
+                  <th className="text-left px-4 py-3 label-sm">Plano</th>
+                  <th className="text-left px-4 py-3 label-sm">Uso</th>
                   <th className="text-right px-4 py-3 label-sm">
                     <button onClick={() => toggleSort("value")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Valor {sortIcon("value")}</button>
                   </th>
