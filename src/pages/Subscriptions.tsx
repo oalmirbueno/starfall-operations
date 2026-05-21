@@ -597,7 +597,35 @@ export default function Subscriptions() {
               <div className="space-y-1.5"><Label className="text-xs">Conta</Label><Input value={form.account} onChange={e => setForm(f => ({ ...f, account: e.target.value }))} className="bg-secondary/50" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label className="text-xs">Plano</Label><Input value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))} className="bg-secondary/50" /></div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Plano / Uso</Label>
+                <Input value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))} className="bg-secondary/50" placeholder="ex.: Codex, OpenCloud…" />
+                {(() => {
+                  const key = form.provider.trim().toLowerCase();
+                  const defaults = USAGE_SUGGESTIONS[key] ?? [];
+                  const fromOthers = Array.from(new Set(
+                    subscriptions
+                      .filter(x => x.provider.trim().toLowerCase() === key && x.plan)
+                      .map(x => x.plan!.trim())
+                  ));
+                  const suggestions = Array.from(new Set([...defaults, ...fromOthers])).filter(Boolean);
+                  if (suggestions.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {suggestions.map(s => (
+                        <button
+                          type="button"
+                          key={s}
+                          onClick={() => setForm(f => ({ ...f, plan: s }))}
+                          className={`text-[10px] font-medium px-2 py-0.5 rounded-md border transition-opacity ${usageColor(s)} ${form.plan === s ? "ring-1 ring-primary" : "opacity-80 hover:opacity-100"}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
               <div className="space-y-1.5"><Label className="text-xs">Categoria</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="bg-secondary/50" /></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
