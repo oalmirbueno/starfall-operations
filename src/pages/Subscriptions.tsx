@@ -50,6 +50,9 @@ export default function Subscriptions() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editing, setEditing] = useState<SubscriptionRow | null>(null);
   const [form, setForm] = useState(defaultForm);
+  const [groupByProvider, setGroupByProvider] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [showStandby, setShowStandby] = useState(false);
 
   const categories = ["all", ...Array.from(new Set(subscriptions.map(s => s.category).filter(Boolean)))];
 
