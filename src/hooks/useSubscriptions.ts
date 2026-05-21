@@ -9,6 +9,7 @@ export interface SubscriptionRow {
   provider: string;
   account: string | null;
   plan: string | null;
+  usage_label: string | null;
   value: number;
   currency: string;
   cycle: string;

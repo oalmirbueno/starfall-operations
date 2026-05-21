@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { monthlyValue as monthlyValueOf, isPaidCurrentPeriod, isOverdue, monthsOverdue } from "@/lib/billing";
 
 const defaultForm = {
-  provider: "", account: "", plan: "", value: 0, currency: "BRL",
+  provider: "", account: "", plan: "", usage_label: "", value: 0, currency: "BRL",
   cycle: "mensal", next_renewal: "", auto_renew: true, status: "ativo",
   responsible: "", notes: "", tags: [] as string[], category: "",
 };
@@ -40,27 +40,13 @@ type SortDir = "asc" | "desc";
 
 /** Sugestões de "uso" por provider — usuário pode digitar livre também */
 const USAGE_SUGGESTIONS: Record<string, string[]> = {
-  chatgpt: ["Codex", "OpenCloud", "Codex Externo", "Codex VPS", "Pesquisa", "Dev geral"],
-  openai: ["Codex", "OpenCloud", "API", "Embeddings"],
+  chatgpt: ["Codex", "OpenClaw", "Codex Externo", "Codex VPS", "Pesquisa", "Dev geral"],
+  openai: ["Codex", "OpenClaw", "API", "Embeddings"],
   claude: ["Code", "Web", "API"],
   gemini: ["Code", "Web", "API"],
   lovable: ["Build", "Cliente"],
   canva: ["Marketing", "Cliente"],
 };
-
-const USAGE_PALETTE = [
-  "bg-primary/10 text-primary border-primary/20",
-  "bg-info/10 text-info border-info/20",
-  "bg-warning/10 text-warning border-warning/20",
-  "bg-destructive/10 text-destructive border-destructive/20",
-  "bg-accent/30 text-foreground border-border",
-];
-function usageColor(label: string) {
-  if (!label) return USAGE_PALETTE[4];
-  let h = 0;
-  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
-  return USAGE_PALETTE[h % (USAGE_PALETTE.length - 1)];
-}
 
 function UsageChip({
   sub,
@@ -68,39 +54,41 @@ function UsageChip({
   allSubs,
 }: {
   sub: SubscriptionRow;
-  onSave: (plan: string) => void | Promise<void>;
+  onSave: (usage: string) => void | Promise<void>;
   allSubs: SubscriptionRow[];
 }) {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(sub.plan ?? "");
+  const [value, setValue] = useState(sub.usage_label ?? "");
   const providerKey = sub.provider.trim().toLowerCase();
   const defaults = USAGE_SUGGESTIONS[providerKey] ?? [];
   const fromOthers = Array.from(
     new Set(
       allSubs
-        .filter((x) => x.provider.trim().toLowerCase() === providerKey && x.plan)
-        .map((x) => x.plan!.trim()),
+        .filter((x) => x.provider.trim().toLowerCase() === providerKey && x.usage_label)
+        .map((x) => x.usage_label!.trim()),
     ),
   );
   const suggestions = Array.from(new Set([...defaults, ...fromOthers])).filter(Boolean);
-  const label = sub.plan?.trim() || "Definir uso";
-  const isSet = !!sub.plan?.trim();
+  const current = sub.usage_label?.trim() || "";
+  const isSet = !!current;
   const commit = async (v: string) => {
     setOpen(false);
-    if ((v || "") === (sub.plan ?? "")) return;
+    if ((v || "") === (sub.usage_label ?? "")) return;
     await onSave(v.trim());
   };
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setValue(sub.plan ?? ""); }}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setValue(sub.usage_label ?? ""); }}>
       <PopoverTrigger asChild>
         <button
           onClick={(e) => e.stopPropagation()}
           className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md border transition-colors ${
-            isSet ? usageColor(label) : "bg-secondary/60 text-muted-foreground border-dashed border-border hover:text-foreground hover:border-foreground/40"
+            isSet
+              ? "bg-primary/8 text-primary border-primary/20 hover:bg-primary/15"
+              : "bg-transparent text-muted-foreground border-dashed border-border/70 hover:text-foreground hover:border-foreground/40"
           }`}
           title="Definir o uso desta conta"
         >
-          {isSet ? label : "+ uso"}
+          {isSet ? current : "+ uso"}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-3 space-y-2">
@@ -110,20 +98,27 @@ function UsageChip({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") commit(value); if (e.key === "Escape") setOpen(false); }}
-          placeholder="ex.: Codex, OpenCloud…"
+          placeholder="ex.: Codex, OpenClaw…"
           className="bg-secondary/50 h-8 text-sm"
         />
         {suggestions.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">
-            {suggestions.map((s) => (
-              <button
-                key={s}
-                onClick={() => commit(s)}
-                className={`text-[10px] font-medium px-2 py-0.5 rounded-md border ${usageColor(s)} hover:opacity-80`}
-              >
-                {s}
-              </button>
-            ))}
+            {suggestions.map((s) => {
+              const selected = s === current;
+              return (
+                <button
+                  key={s}
+                  onClick={() => commit(s)}
+                  className={`text-[10px] font-medium px-2 py-0.5 rounded-md border transition-colors ${
+                    selected
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-secondary/50 text-foreground/80 border-border hover:bg-secondary"
+                  }`}
+                >
+                  {s}
+                </button>
+              );
+            })}
           </div>
         )}
         <div className="flex justify-between items-center pt-1">
@@ -223,6 +218,7 @@ export default function Subscriptions() {
     setEditing(s);
     setForm({
       provider: s.provider, account: s.account ?? "", plan: s.plan ?? "",
+      usage_label: s.usage_label ?? "",
       value: Number(s.value), currency: s.currency, cycle: s.cycle,
       next_renewal: s.next_renewal ?? "", auto_renew: s.auto_renew,
       status: s.status, responsible: s.responsible ?? "", notes: s.notes ?? "",
@@ -243,7 +239,8 @@ export default function Subscriptions() {
     const payload = {
       ...form, value: form.value,
       next_renewal: form.next_renewal || null, account: form.account || null,
-      plan: form.plan || null, responsible: form.responsible || null,
+      plan: form.plan || null, usage_label: form.usage_label || null,
+      responsible: form.responsible || null,
       notes: form.notes || null, category: form.category || null,
     };
     if (editing) await update.mutateAsync({ id: editing.id, ...payload });
@@ -433,7 +430,7 @@ export default function Subscriptions() {
                   <th className="text-left px-4 py-3 label-sm">
                     <button onClick={() => toggleSort("provider")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Provider {sortIcon("provider")}</button>
                   </th>
-                  <th className="text-left px-4 py-3 label-sm">Plano</th>
+                  <th className="text-left px-4 py-3 label-sm">Plano · Uso</th>
                   <th className="text-right px-4 py-3 label-sm">
                     <button onClick={() => toggleSort("value")} className="inline-flex items-center gap-1 hover:text-primary transition-colors">Valor {sortIcon("value")}</button>
                   </th>
@@ -456,22 +453,36 @@ export default function Subscriptions() {
                     const months = overdue ? monthsOverdue(s) : 0;
                     const isStandby = s.status === "standby";
                     return (
-                      <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${isStandby ? "opacity-60" : overdue ? "bg-warning/[0.04]" : !isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
-                        <td className="px-4 py-3">
-                          <div className={`font-medium text-foreground flex items-center gap-1.5 flex-wrap ${inGroup ? "pl-6 text-[13px]" : ""}`}>
-                            {inGroup ? (s.account || "Conta principal") : s.provider}
+                      <tr key={s.id} className={`border-b border-border/40 hover:bg-secondary/15 transition-colors ${isStandby ? "opacity-55" : overdue ? "bg-warning/[0.03]" : !isPaid && s.status === "ativo" ? "bg-destructive/[0.015]" : ""}`}>
+                        <td className="px-4 py-3.5">
+                          <div className={`flex items-center gap-2 ${inGroup ? "pl-7" : ""}`}>
+                            <div className="min-w-0 flex-1">
+                              <div className={`font-medium text-foreground truncate ${inGroup ? "text-[13px]" : "text-sm"}`}>
+                                {inGroup ? (s.account || "Conta principal") : s.provider}
+                              </div>
+                              {!inGroup && s.account && (
+                                <div className="text-[10px] text-muted-foreground font-mono truncate">{s.account}</div>
+                              )}
+                            </div>
+                            {overdue && (
+                              <span title={`${months} ${months === 1 ? "mês" : "meses"} em atraso`} className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning shrink-0">
+                                <AlertTriangle className="h-2.5 w-2.5" />{months > 0 ? `${months}m` : "atraso"}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2">
+                            {s.plan && <span className="text-xs text-foreground/80">{s.plan}</span>}
                             <UsageChip
                               sub={s}
                               allSubs={subscriptions}
-                              onSave={async (plan) => {
-                                await update.mutateAsync({ id: s.id, plan: plan || null } as any);
+                              onSave={async (usage) => {
+                                await update.mutateAsync({ id: s.id, usage_label: usage || null } as any);
                               }}
                             />
-                            {overdue && <span title={`${months} ${months === 1 ? "mês" : "meses"} em atraso`} className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning"><AlertTriangle className="h-2.5 w-2.5" />{months > 0 ? `${months}m` : "atraso"}</span>}
                           </div>
-                          {!inGroup && s.account && <div className="text-[10px] text-muted-foreground font-mono">{s.account}</div>}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">{s.plan ?? "—"}</td>
                         <td className="px-4 py-3 text-right font-mono text-foreground">{s.currency} {Number(s.value).toFixed(2)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{s.cycle}</td>
                         <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.next_renewal ?? "—"}</td>
@@ -598,35 +609,46 @@ export default function Subscriptions() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Plano / Uso</Label>
-                <Input value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))} className="bg-secondary/50" placeholder="ex.: Codex, OpenCloud…" />
-                {(() => {
-                  const key = form.provider.trim().toLowerCase();
-                  const defaults = USAGE_SUGGESTIONS[key] ?? [];
-                  const fromOthers = Array.from(new Set(
-                    subscriptions
-                      .filter(x => x.provider.trim().toLowerCase() === key && x.plan)
-                      .map(x => x.plan!.trim())
-                  ));
-                  const suggestions = Array.from(new Set([...defaults, ...fromOthers])).filter(Boolean);
-                  if (suggestions.length === 0) return null;
-                  return (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {suggestions.map(s => (
+                <Label className="text-xs">Plano</Label>
+                <Input value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))} className="bg-secondary/50" placeholder="ex.: Plus, Pro, Free" />
+              </div>
+              <div className="space-y-1.5"><Label className="text-xs">Categoria</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="bg-secondary/50" /></div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Uso</Label>
+              <Input value={form.usage_label} onChange={e => setForm(f => ({ ...f, usage_label: e.target.value }))} className="bg-secondary/50" placeholder="Para que essa conta serve? ex.: Codex, OpenClaw, VPS…" />
+              {(() => {
+                const key = form.provider.trim().toLowerCase();
+                const defaults = USAGE_SUGGESTIONS[key] ?? [];
+                const fromOthers = Array.from(new Set(
+                  subscriptions
+                    .filter(x => x.provider.trim().toLowerCase() === key && x.usage_label)
+                    .map(x => x.usage_label!.trim())
+                ));
+                const suggestions = Array.from(new Set([...defaults, ...fromOthers])).filter(Boolean);
+                if (suggestions.length === 0) return null;
+                return (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {suggestions.map(s => {
+                      const selected = form.usage_label === s;
+                      return (
                         <button
                           type="button"
                           key={s}
-                          onClick={() => setForm(f => ({ ...f, plan: s }))}
-                          className={`text-[10px] font-medium px-2 py-0.5 rounded-md border transition-opacity ${usageColor(s)} ${form.plan === s ? "ring-1 ring-primary" : "opacity-80 hover:opacity-100"}`}
+                          onClick={() => setForm(f => ({ ...f, usage_label: selected ? "" : s }))}
+                          className={`text-[10px] font-medium px-2 py-0.5 rounded-md border transition-colors ${
+                            selected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-secondary/50 text-foreground/80 border-border hover:bg-secondary"
+                          }`}
                         >
                           {s}
                         </button>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-              <div className="space-y-1.5"><Label className="text-xs">Categoria</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="bg-secondary/50" /></div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5"><Label className="text-xs">Valor *</Label><Input type="number" step="0.01" value={form.value} onChange={e => setForm(f => ({ ...f, value: Number(e.target.value) }))} className="bg-secondary/50" /></div>
