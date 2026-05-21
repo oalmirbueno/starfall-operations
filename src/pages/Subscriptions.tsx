@@ -555,9 +555,10 @@ export default function Subscriptions() {
                             {overdueIn > 0 && <span className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning"><AlertTriangle className="h-2.5 w-2.5" />{overdueIn}</span>}
                           </button>
                         </td>
-                        <td colSpan={1} className="px-4 py-2 text-[11px] text-muted-foreground">{activeItems.length} ativas</td>
+                        <td className="px-4 py-2 text-[11px] text-muted-foreground">{activeItems.length} ativas</td>
+                        <td></td>
                         <td className="px-4 py-2 text-right font-mono text-xs text-foreground">R$ {groupMonthly.toFixed(2)}/mês</td>
-                        <td colSpan={5}></td>
+                        <td colSpan={4}></td>
                         <td className="px-4 py-2 text-right">
                           <button
                             onClick={() => openCreate(g.label)}
