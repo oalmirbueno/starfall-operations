@@ -303,7 +303,7 @@ export default function Subscriptions() {
           <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center mb-4"><Plus className="h-6 w-6 text-muted-foreground/50" /></div>
           <h3 className="text-sm font-medium text-foreground mb-1">Nenhuma assinatura</h3>
           <p className="text-xs text-muted-foreground mb-4">Adicione suas assinaturas para monitorar custos</p>
-          <Button onClick={openCreate} size="sm" variant="outline" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Adicionar</Button>
+          <Button onClick={() => openCreate()} size="sm" variant="outline" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Adicionar</Button>
         </div>
       ) : (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
