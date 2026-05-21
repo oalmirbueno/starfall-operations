@@ -349,47 +349,109 @@ export default function Subscriptions() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(s => {
-                  const isPaid = isPaidCurrentPeriod(s);
-                  const overdue = isOverdue(s);
-                  const months = overdue ? monthsOverdue(s) : 0;
-                  return (
-                    <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${overdue ? "bg-warning/[0.04]" : !isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-foreground flex items-center gap-1.5">
-                          {s.provider}
-                          {overdue && <span title={`${months} ${months === 1 ? "mês" : "meses"} em atraso`} className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning"><AlertTriangle className="h-2.5 w-2.5" />{months > 0 ? `${months}m` : "atraso"}</span>}
-                        </div>
-                        {s.account && <div className="text-[10px] text-muted-foreground font-mono">{s.account}</div>}
-                      </td>
-                      <td className="px-4 py-3 text-foreground">{s.plan ?? "—"}</td>
-                      <td className="px-4 py-3 text-right font-mono text-foreground">{s.currency} {Number(s.value).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{s.cycle}</td>
-                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.next_renewal ?? "—"}</td>
-                      <td className="px-4 py-3 text-center">
-                        {isPaid ? (
-                          <button onClick={() => markUnpaid(s)}
-                            className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors" title="Clique para desfazer">
-                            <Check className="h-3 w-3" /> Pago
+                {(() => {
+                  const renderRow = (s: SubscriptionRow, inGroup = false) => {
+                    const isPaid = isPaidCurrentPeriod(s);
+                    const overdue = isOverdue(s);
+                    const months = overdue ? monthsOverdue(s) : 0;
+                    const isStandby = s.status === "standby";
+                    return (
+                      <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${isStandby ? "opacity-60" : overdue ? "bg-warning/[0.04]" : !isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
+                        <td className="px-4 py-3">
+                          <div className={`font-medium text-foreground flex items-center gap-1.5 ${inGroup ? "pl-6 text-[13px]" : ""}`}>
+                            {inGroup ? (s.account || s.plan || "—") : s.provider}
+                            {overdue && <span title={`${months} ${months === 1 ? "mês" : "meses"} em atraso`} className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning"><AlertTriangle className="h-2.5 w-2.5" />{months > 0 ? `${months}m` : "atraso"}</span>}
+                          </div>
+                          {!inGroup && s.account && <div className="text-[10px] text-muted-foreground font-mono">{s.account}</div>}
+                        </td>
+                        <td className="px-4 py-3 text-foreground">{s.plan ?? "—"}</td>
+                        <td className="px-4 py-3 text-right font-mono text-foreground">{s.currency} {Number(s.value).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{s.cycle}</td>
+                        <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.next_renewal ?? "—"}</td>
+                        <td className="px-4 py-3 text-center">
+                          {isStandby ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info"><Pause className="h-3 w-3" /> Pausado</span>
+                          ) : isPaid ? (
+                            <button onClick={() => markUnpaid(s)}
+                              className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors" title="Clique para desfazer">
+                              <Check className="h-3 w-3" /> Pago
+                            </button>
+                          ) : (
+                            <button onClick={() => markPaid(s)}
+                              className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors ${overdue ? "bg-warning/15 text-warning hover:bg-warning/25" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}>
+                              <CircleDollarSign className="h-3 w-3" /> {overdue ? "Quitar" : "Pagar"}
+                            </button>
+                          )}
+                        </td>
+                        <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => toggleStandby(s)} className="text-muted-foreground hover:text-info p-1" title={isStandby ? "Reativar" : "Pôr em standby"}>
+                              {isStandby ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                            </button>
+                            <button onClick={() => openEdit(s)} className="text-muted-foreground hover:text-primary p-1"><Edit className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => setDeleteConfirm(s.id)} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="h-3.5 w-3.5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  };
+
+                  if (!groupByProvider) return filtered.map(s => renderRow(s, false));
+
+                  // Group by provider (case-insensitive)
+                  const groups = new Map<string, { key: string; label: string; items: SubscriptionRow[] }>();
+                  for (const s of filtered) {
+                    const key = s.provider.trim().toLowerCase();
+                    if (!groups.has(key)) groups.set(key, { key, label: s.provider, items: [] });
+                    groups.get(key)!.items.push(s);
+                  }
+                  const groupArr = Array.from(groups.values());
+                  const rows: JSX.Element[] = [];
+                  for (const g of groupArr) {
+                    const collapsed = collapsedGroups[g.key];
+                    const activeItems = g.items.filter(i => i.status === "ativo");
+                    const groupMonthly = activeItems.reduce((a, i) => a + monthlyValue(i), 0);
+                    const overdueIn = g.items.filter(i => isOverdue(i)).length;
+                    if (g.items.length === 1 && !collapsed) {
+                      rows.push(renderRow(g.items[0], false));
+                      continue;
+                    }
+                    rows.push(
+                      <tr key={`g-${g.key}`} className="bg-secondary/40 border-b border-border/60">
+                        <td className="px-4 py-2">
+                          <button
+                            onClick={() => setCollapsedGroups(c => ({ ...c, [g.key]: !c[g.key] }))}
+                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-primary"
+                          >
+                            {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            {g.label}
+                            <span className="text-[10px] font-mono text-muted-foreground ml-1">{g.items.length} {g.items.length === 1 ? "conta" : "contas"}</span>
+                            {overdueIn > 0 && <span className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning"><AlertTriangle className="h-2.5 w-2.5" />{overdueIn}</span>}
                           </button>
-                        ) : (
-                          <button onClick={() => markPaid(s)}
-                            className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors ${overdue ? "bg-warning/15 text-warning hover:bg-warning/25" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}>
-                            <CircleDollarSign className="h-3 w-3" /> {overdue ? "Quitar" : "Pagar"}
+                        </td>
+                        <td colSpan={1} className="px-4 py-2 text-[11px] text-muted-foreground">{activeItems.length} ativas</td>
+                        <td className="px-4 py-2 text-right font-mono text-xs text-foreground">R$ {groupMonthly.toFixed(2)}/mês</td>
+                        <td colSpan={4}></td>
+                        <td className="px-4 py-2 text-right">
+                          <button
+                            onClick={() => openCreate(g.label)}
+                            className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20"
+                            title={`Adicionar outra conta de ${g.label}`}
+                          >
+                            <Plus className="h-3 w-3" /> Conta
                           </button>
-                        )}
-                      </td>
-                      <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openEdit(s)} className="text-muted-foreground hover:text-primary p-1"><Edit className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => setDeleteConfirm(s.id)} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="h-3.5 w-3.5" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                      </tr>
+                    );
+                    if (!collapsed) {
+                      for (const s of g.items) rows.push(renderRow(s, true));
+                    }
+                  }
+                  return rows;
+                })()}
               </tbody>
+
               {/* Footer totals */}
               <tfoot>
                 <tr className="bg-secondary/20 border-t border-border">
