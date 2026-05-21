@@ -595,35 +595,46 @@ export default function Subscriptions() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Plano / Uso</Label>
-                <Input value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))} className="bg-secondary/50" placeholder="ex.: Codex, OpenCloud…" />
-                {(() => {
-                  const key = form.provider.trim().toLowerCase();
-                  const defaults = USAGE_SUGGESTIONS[key] ?? [];
-                  const fromOthers = Array.from(new Set(
-                    subscriptions
-                      .filter(x => x.provider.trim().toLowerCase() === key && x.plan)
-                      .map(x => x.plan!.trim())
-                  ));
-                  const suggestions = Array.from(new Set([...defaults, ...fromOthers])).filter(Boolean);
-                  if (suggestions.length === 0) return null;
-                  return (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {suggestions.map(s => (
+                <Label className="text-xs">Plano</Label>
+                <Input value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))} className="bg-secondary/50" placeholder="ex.: Plus, Pro, Free" />
+              </div>
+              <div className="space-y-1.5"><Label className="text-xs">Categoria</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="bg-secondary/50" /></div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Uso</Label>
+              <Input value={form.usage_label} onChange={e => setForm(f => ({ ...f, usage_label: e.target.value }))} className="bg-secondary/50" placeholder="Para que essa conta serve? ex.: Codex, OpenClaw, VPS…" />
+              {(() => {
+                const key = form.provider.trim().toLowerCase();
+                const defaults = USAGE_SUGGESTIONS[key] ?? [];
+                const fromOthers = Array.from(new Set(
+                  subscriptions
+                    .filter(x => x.provider.trim().toLowerCase() === key && x.usage_label)
+                    .map(x => x.usage_label!.trim())
+                ));
+                const suggestions = Array.from(new Set([...defaults, ...fromOthers])).filter(Boolean);
+                if (suggestions.length === 0) return null;
+                return (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {suggestions.map(s => {
+                      const selected = form.usage_label === s;
+                      return (
                         <button
                           type="button"
                           key={s}
-                          onClick={() => setForm(f => ({ ...f, plan: s }))}
-                          className={`text-[10px] font-medium px-2 py-0.5 rounded-md border transition-opacity ${usageColor(s)} ${form.plan === s ? "ring-1 ring-primary" : "opacity-80 hover:opacity-100"}`}
+                          onClick={() => setForm(f => ({ ...f, usage_label: selected ? "" : s }))}
+                          className={`text-[10px] font-medium px-2 py-0.5 rounded-md border transition-colors ${
+                            selected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-secondary/50 text-foreground/80 border-border hover:bg-secondary"
+                          }`}
                         >
                           {s}
                         </button>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-              <div className="space-y-1.5"><Label className="text-xs">Categoria</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="bg-secondary/50" /></div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5"><Label className="text-xs">Valor *</Label><Input type="number" step="0.01" value={form.value} onChange={e => setForm(f => ({ ...f, value: Number(e.target.value) }))} className="bg-secondary/50" /></div>
