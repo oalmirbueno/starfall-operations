@@ -473,16 +473,22 @@ export default function Subscriptions() {
                           </div>
                         </td>
                         <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2">
-                            {s.plan && <span className="text-xs text-foreground/80">{s.plan}</span>}
-                            <UsageChip
-                              sub={s}
-                              allSubs={subscriptions}
-                              onSave={async (usage) => {
-                                await update.mutateAsync({ id: s.id, usage_label: usage || null } as any);
-                              }}
-                            />
-                          </div>
+                          {s.plan ? (
+                            <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-secondary/60 text-foreground/85 border border-border/60">
+                              {s.plan}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground/50">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <UsageChip
+                            sub={s}
+                            allSubs={subscriptions}
+                            onSave={async (usage) => {
+                              await update.mutateAsync({ id: s.id, usage_label: usage || null } as any);
+                            }}
+                          />
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-foreground">{s.currency} {Number(s.value).toFixed(2)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{s.cycle}</td>
