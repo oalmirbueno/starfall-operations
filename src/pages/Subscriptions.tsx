@@ -197,7 +197,7 @@ export default function Subscriptions() {
           <h1 className="text-xl font-semibold text-foreground">Assinaturas</h1>
           <p className="text-sm text-muted-foreground mt-1">Gestão completa de assinaturas e serviços recorrentes</p>
         </div>
-        <Button onClick={openCreate} size="sm" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Nova Assinatura</Button>
+        <Button onClick={() => openCreate()} size="sm" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Nova Assinatura</Button>
       </div>
 
       {/* Summary cards */}
