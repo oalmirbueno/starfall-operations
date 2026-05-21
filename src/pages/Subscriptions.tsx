@@ -458,13 +458,20 @@ export default function Subscriptions() {
                     return (
                       <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${isStandby ? "opacity-60" : overdue ? "bg-warning/[0.04]" : !isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
                         <td className="px-4 py-3">
-                          <div className={`font-medium text-foreground flex items-center gap-1.5 ${inGroup ? "pl-6 text-[13px]" : ""}`}>
-                            {inGroup ? (s.account || s.plan || "—") : s.provider}
+                          <div className={`font-medium text-foreground flex items-center gap-1.5 flex-wrap ${inGroup ? "pl-6 text-[13px]" : ""}`}>
+                            {inGroup ? (s.account || "Conta principal") : s.provider}
+                            <UsageChip
+                              sub={s}
+                              allSubs={subscriptions}
+                              onSave={async (plan) => {
+                                await update.mutateAsync({ id: s.id, plan: plan || null } as any);
+                              }}
+                            />
                             {overdue && <span title={`${months} ${months === 1 ? "mês" : "meses"} em atraso`} className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning"><AlertTriangle className="h-2.5 w-2.5" />{months > 0 ? `${months}m` : "atraso"}</span>}
                           </div>
                           {!inGroup && s.account && <div className="text-[10px] text-muted-foreground font-mono">{s.account}</div>}
                         </td>
-                        <td className="px-4 py-3 text-foreground">{s.plan ?? "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{s.plan ?? "—"}</td>
                         <td className="px-4 py-3 text-right font-mono text-foreground">{s.currency} {Number(s.value).toFixed(2)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{s.cycle}</td>
                         <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.next_renewal ?? "—"}</td>
