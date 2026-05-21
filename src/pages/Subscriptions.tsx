@@ -586,7 +586,7 @@ export default function Subscriptions() {
                   <td className="px-4 py-2 text-right font-mono font-bold text-foreground text-sm">
                     R$ {filtered.filter(s => s.status === "ativo").reduce((sum, s) => sum + monthlyValue(s), 0).toFixed(2)}
                   </td>
-                  <td colSpan={5} className="px-4 py-2 text-xs text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-2 text-xs text-muted-foreground">
                     {filtered.length} {filtered.length === 1 ? "item" : "itens"} exibidos
                   </td>
                 </tr>
