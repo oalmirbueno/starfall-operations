@@ -958,6 +958,7 @@ export type Database = {
           status: string
           tags: string[] | null
           updated_at: string
+          usage_label: string | null
           user_id: string
           value: number
         }
@@ -981,6 +982,7 @@ export type Database = {
           status?: string
           tags?: string[] | null
           updated_at?: string
+          usage_label?: string | null
           user_id: string
           value?: number
         }
@@ -1004,6 +1006,7 @@ export type Database = {
           status?: string
           tags?: string[] | null
           updated_at?: string
+          usage_label?: string | null
           user_id?: string
           value?: number
         }
