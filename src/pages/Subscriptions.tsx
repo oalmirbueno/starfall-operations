@@ -519,6 +519,7 @@ export default function Subscriptions() {
                   <SelectTrigger className="bg-secondary/50"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ativo">Ativo</SelectItem>
+                    <SelectItem value="standby">Standby (pausado)</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="cancelado">Cancelado</SelectItem>
                     <SelectItem value="expirado">Expirado</SelectItem>
