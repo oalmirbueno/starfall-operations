@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSubscriptions, SubscriptionRow } from "@/hooks/useSubscriptions";
 import { useAlerts } from "@/hooks/useAlerts";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign, DollarSign, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
+import { Search, Filter, Plus, Edit, Trash2, Check, CircleDollarSign, DollarSign, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Pause, Play, ChevronDown, ChevronRight, Layers } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
