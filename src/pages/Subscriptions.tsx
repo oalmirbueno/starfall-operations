@@ -38,6 +38,105 @@ function monthlyValue(s: SubscriptionRow): number {
 type SortKey = "renewal" | "value" | "provider" | "payment" | "updated";
 type SortDir = "asc" | "desc";
 
+/** Sugestões de "uso" por provider — usuário pode digitar livre também */
+const USAGE_SUGGESTIONS: Record<string, string[]> = {
+  chatgpt: ["Codex", "OpenCloud", "Codex Externo", "Codex VPS", "Pesquisa", "Dev geral"],
+  openai: ["Codex", "OpenCloud", "API", "Embeddings"],
+  claude: ["Code", "Web", "API"],
+  gemini: ["Code", "Web", "API"],
+  lovable: ["Build", "Cliente"],
+  canva: ["Marketing", "Cliente"],
+};
+
+const USAGE_PALETTE = [
+  "bg-primary/10 text-primary border-primary/20",
+  "bg-info/10 text-info border-info/20",
+  "bg-warning/10 text-warning border-warning/20",
+  "bg-destructive/10 text-destructive border-destructive/20",
+  "bg-accent/30 text-foreground border-border",
+];
+function usageColor(label: string) {
+  if (!label) return USAGE_PALETTE[4];
+  let h = 0;
+  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
+  return USAGE_PALETTE[h % (USAGE_PALETTE.length - 1)];
+}
+
+function UsageChip({
+  sub,
+  onSave,
+  allSubs,
+}: {
+  sub: SubscriptionRow;
+  onSave: (plan: string) => void | Promise<void>;
+  allSubs: SubscriptionRow[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(sub.plan ?? "");
+  const providerKey = sub.provider.trim().toLowerCase();
+  const defaults = USAGE_SUGGESTIONS[providerKey] ?? [];
+  const fromOthers = Array.from(
+    new Set(
+      allSubs
+        .filter((x) => x.provider.trim().toLowerCase() === providerKey && x.plan)
+        .map((x) => x.plan!.trim()),
+    ),
+  );
+  const suggestions = Array.from(new Set([...defaults, ...fromOthers])).filter(Boolean);
+  const label = sub.plan?.trim() || "Definir uso";
+  const isSet = !!sub.plan?.trim();
+  const commit = async (v: string) => {
+    setOpen(false);
+    if ((v || "") === (sub.plan ?? "")) return;
+    await onSave(v.trim());
+  };
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setValue(sub.plan ?? ""); }}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md border transition-colors ${
+            isSet ? usageColor(label) : "bg-secondary/60 text-muted-foreground border-dashed border-border hover:text-foreground hover:border-foreground/40"
+          }`}
+          title="Definir o uso desta conta"
+        >
+          {isSet ? label : "+ uso"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-3 space-y-2">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Uso desta conta</div>
+        <Input
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") commit(value); if (e.key === "Escape") setOpen(false); }}
+          placeholder="ex.: Codex, OpenCloud…"
+          className="bg-secondary/50 h-8 text-sm"
+        />
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                onClick={() => commit(s)}
+                className={`text-[10px] font-medium px-2 py-0.5 rounded-md border ${usageColor(s)} hover:opacity-80`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex justify-between items-center pt-1">
+          {isSet ? (
+            <button onClick={() => commit("")} className="text-[10px] text-destructive hover:underline">Limpar</button>
+          ) : <span />}
+          <button onClick={() => commit(value)} className="text-[10px] font-medium text-primary hover:underline">Salvar</button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function Subscriptions() {
   const { subscriptions, isLoading, create, update, remove } = useSubscriptions();
   const { computeAlerts } = useAlerts();
