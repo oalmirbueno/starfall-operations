@@ -453,22 +453,36 @@ export default function Subscriptions() {
                     const months = overdue ? monthsOverdue(s) : 0;
                     const isStandby = s.status === "standby";
                     return (
-                      <tr key={s.id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${isStandby ? "opacity-60" : overdue ? "bg-warning/[0.04]" : !isPaid && s.status === "ativo" ? "bg-destructive/[0.02]" : ""}`}>
-                        <td className="px-4 py-3">
-                          <div className={`font-medium text-foreground flex items-center gap-1.5 flex-wrap ${inGroup ? "pl-6 text-[13px]" : ""}`}>
-                            {inGroup ? (s.account || "Conta principal") : s.provider}
+                      <tr key={s.id} className={`border-b border-border/40 hover:bg-secondary/15 transition-colors ${isStandby ? "opacity-55" : overdue ? "bg-warning/[0.03]" : !isPaid && s.status === "ativo" ? "bg-destructive/[0.015]" : ""}`}>
+                        <td className="px-4 py-3.5">
+                          <div className={`flex items-center gap-2 ${inGroup ? "pl-7" : ""}`}>
+                            <div className="min-w-0 flex-1">
+                              <div className={`font-medium text-foreground truncate ${inGroup ? "text-[13px]" : "text-sm"}`}>
+                                {inGroup ? (s.account || "Conta principal") : s.provider}
+                              </div>
+                              {!inGroup && s.account && (
+                                <div className="text-[10px] text-muted-foreground font-mono truncate">{s.account}</div>
+                              )}
+                            </div>
+                            {overdue && (
+                              <span title={`${months} ${months === 1 ? "mês" : "meses"} em atraso`} className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning shrink-0">
+                                <AlertTriangle className="h-2.5 w-2.5" />{months > 0 ? `${months}m` : "atraso"}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2">
+                            {s.plan && <span className="text-xs text-foreground/80">{s.plan}</span>}
                             <UsageChip
                               sub={s}
                               allSubs={subscriptions}
-                              onSave={async (plan) => {
-                                await update.mutateAsync({ id: s.id, plan: plan || null } as any);
+                              onSave={async (usage) => {
+                                await update.mutateAsync({ id: s.id, usage_label: usage || null } as any);
                               }}
                             />
-                            {overdue && <span title={`${months} ${months === 1 ? "mês" : "meses"} em atraso`} className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning"><AlertTriangle className="h-2.5 w-2.5" />{months > 0 ? `${months}m` : "atraso"}</span>}
                           </div>
-                          {!inGroup && s.account && <div className="text-[10px] text-muted-foreground font-mono">{s.account}</div>}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">{s.plan ?? "—"}</td>
                         <td className="px-4 py-3 text-right font-mono text-foreground">{s.currency} {Number(s.value).toFixed(2)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{s.cycle}</td>
                         <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.next_renewal ?? "—"}</td>
