@@ -557,7 +557,7 @@ export default function Subscriptions() {
                         </td>
                         <td colSpan={1} className="px-4 py-2 text-[11px] text-muted-foreground">{activeItems.length} ativas</td>
                         <td className="px-4 py-2 text-right font-mono text-xs text-foreground">R$ {groupMonthly.toFixed(2)}/mês</td>
-                        <td colSpan={4}></td>
+                        <td colSpan={5}></td>
                         <td className="px-4 py-2 text-right">
                           <button
                             onClick={() => openCreate(g.label)}
