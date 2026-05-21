@@ -77,13 +77,17 @@ export default function Subscriptions() {
   const overdueCount = overdueList.length;
   const overdueTotal = overdueList.reduce((acc, x) => acc + x.monthly * Math.max(1, x.months), 0);
 
+  const standbyCount = subscriptions.filter(s => s.status === "standby").length;
+
   const filtered = subscriptions.filter(s => {
+    if (s.status === "standby" && !showStandby && paymentFilter !== "standby") return false;
     const matchSearch = s.provider.toLowerCase().includes(search.toLowerCase()) || (s.account ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCategory = categoryFilter === "all" || s.category === categoryFilter;
     let matchPayment = true;
-    if (paymentFilter === "pago") matchPayment = isPaidCurrentPeriod(s);
+    if (paymentFilter === "pago") matchPayment = isPaidCurrentPeriod(s) && s.status === "ativo";
     else if (paymentFilter === "pendente") matchPayment = s.status === "ativo" && !isPaidCurrentPeriod(s);
     else if (paymentFilter === "atrasada") matchPayment = isOverdue(s);
+    else if (paymentFilter === "standby") matchPayment = s.status === "standby";
     return matchSearch && matchCategory && matchPayment;
   }).sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
