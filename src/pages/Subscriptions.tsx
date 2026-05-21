@@ -289,7 +289,7 @@ export default function Subscriptions() {
           <input type="text" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-full bg-secondary border border-border rounded-md pl-9 pr-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <div className="flex gap-1 flex-wrap">
             {categories.map(c => (
@@ -299,8 +299,23 @@ export default function Subscriptions() {
               </button>
             ))}
           </div>
+          <button
+            onClick={() => setGroupByProvider(g => !g)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${groupByProvider ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+            title="Agrupar por serviço"
+          >
+            <Layers className="h-3 w-3" /> {groupByProvider ? "Agrupado" : "Lista"}
+          </button>
+          <button
+            onClick={() => setShowStandby(s => !s)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${showStandby ? "bg-info/15 text-info" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+            title="Mostrar assinaturas em standby"
+          >
+            <Pause className="h-3 w-3" /> Standby {standbyCount > 0 && <span className="font-mono">({standbyCount})</span>}
+          </button>
         </div>
       </div>
+
 
       {subscriptions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
