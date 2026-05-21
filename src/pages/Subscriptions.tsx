@@ -490,7 +490,7 @@ export default function Subscriptions() {
                             <span className="text-[11px] text-muted-foreground/40">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-foreground">{s.currency} {Number(s.value).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right font-mono text-xs text-foreground">{s.currency === "BRL" ? "R$" : s.currency} {Number(s.value).toFixed(2)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{s.cycle}</td>
                         <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{s.next_renewal ?? "—"}</td>
                         <td className="px-4 py-3 text-center">
