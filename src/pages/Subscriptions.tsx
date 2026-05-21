@@ -223,6 +223,7 @@ export default function Subscriptions() {
     setEditing(s);
     setForm({
       provider: s.provider, account: s.account ?? "", plan: s.plan ?? "",
+      usage_label: s.usage_label ?? "",
       value: Number(s.value), currency: s.currency, cycle: s.cycle,
       next_renewal: s.next_renewal ?? "", auto_renew: s.auto_renew,
       status: s.status, responsible: s.responsible ?? "", notes: s.notes ?? "",
@@ -243,7 +244,8 @@ export default function Subscriptions() {
     const payload = {
       ...form, value: form.value,
       next_renewal: form.next_renewal || null, account: form.account || null,
-      plan: form.plan || null, responsible: form.responsible || null,
+      plan: form.plan || null, usage_label: form.usage_label || null,
+      responsible: form.responsible || null,
       notes: form.notes || null, category: form.category || null,
     };
     if (editing) await update.mutateAsync({ id: editing.id, ...payload });
